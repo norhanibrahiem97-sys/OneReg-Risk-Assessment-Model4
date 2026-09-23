@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- frame-runtime --><!-- /frame-runtime -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OneReg DG Risk Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#E4E8EE; --panel:#FFFFFF; --sunk:#F1F4F8; --raise:#E9EEF5;
+  --line:#DBE2EB; --line2:#B7C2D1;
+  --ink:#111C2B; --ink2:#3B4757; --ink3:#47525F;
+  --navy:#14406E;      /* structure: titles, section rules, chart axes */
+  --blue:#1F6091;      /* interactive: buttons, active states, data lines */
+  --amber:#A3650F; --green:#2F7D5C; --red:#C0392B;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:30px 22px 60px}
+
+header{border-bottom:1px solid var(--line);padding-bottom:0;margin-bottom:22px;
+  background:linear-gradient(180deg,#FFFFFF 0%,var(--bg) 100%);border-top:3px solid var(--navy);
+  margin-left:-22px;margin-right:-22px;padding:22px 22px 0}
+h1{font-size:23px;font-weight:600;letter-spacing:-.018em;margin:0 0 4px;color:var(--navy)}
+.ver{font-family:var(--mono);font-size:11px;color:var(--ink3);margin:0 0 16px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs button{font-family:var(--sans);font-size:13.5px;font-weight:500;background:transparent;color:var(--ink3);
+  border:0;border-bottom:2px solid transparent;padding:10px 16px 12px;cursor:pointer;margin-bottom:-1px;
+  text-align:left;display:flex;align-items:baseline;gap:8px;transition:color .12s}
+.tabs button em{display:block;font-style:normal;font-size:11.5px;color:var(--ink3);font-weight:400;
+  margin-top:2px;opacity:0;transition:opacity .12s}
+.tabs button{flex-direction:column;align-items:flex-start;gap:0}
+.tabs button .tn{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-right:7px}
+.tabs button[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--blue);background:#FFFFFF;
+  border-radius:7px 7px 0 0}
+.tabs button[aria-selected="true"] em{opacity:1}
+.tabs button[aria-selected="true"] .tn{color:var(--blue)}
+.tabs button:hover{color:var(--ink2)}
+.tabs button:hover em{opacity:.7}
+.page{display:none} .page.on{display:block}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:17px 19px;box-shadow:0 1px 2px rgba(27,36,48,.04)}
+.card+.card{margin-top:18px}
+h2{font-size:12.5px;font-weight:600;color:var(--navy);letter-spacing:.06em;text-transform:uppercase;
+  margin:0 0 14px;padding:0 0 9px 11px;border-bottom:1px solid var(--line);position:relative}
+h2::before{content:"";position:absolute;left:0;top:2px;width:3px;height:13px;border-radius:2px;background:var(--navy)}
+h2 .r{float:right;font-family:var(--mono);font-weight:500;font-size:11.5px;letter-spacing:0;
+  color:var(--blue);background:rgba(31,96,145,.09);border:1px solid rgba(31,96,145,.18);
+  border-radius:20px;padding:2px 10px;text-transform:none;margin-top:-3px}
+.lede{color:var(--ink2);font-size:13px;margin:-4px 0 14px;line-height:1.55}
+
+.cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+
+label{display:block;font-size:12.5px;color:var(--ink2);margin:13px 0 5px}
+label:first-of-type{margin-top:0}
+label .v{float:right;font-family:var(--mono);color:var(--ink);font-size:11.5px}
+select,input[type=number]{width:100%;background:var(--sunk);color:var(--ink);border:1px solid var(--line2);border-radius:5px;padding:7px 10px;font-family:var(--sans);font-size:13px}
+input[type=number]{font-family:var(--mono)}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.unk{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink3);margin-top:4px;cursor:pointer}
+.unk input{accent-color:var(--amber);margin:0}
+.dim{opacity:.4}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pstage{background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:12px 11px;position:relative}
+.pstage .n{font-family:var(--mono);font-size:11.5px;color:var(--blue);font-weight:500;letter-spacing:.04em}
+.pstage .t{font-size:12.5px;color:var(--ink2);margin:2px 0 6px;line-height:1.35;min-height:31px}
+.pstage .val{font-family:var(--mono);font-size:17px;color:var(--blue);font-weight:500}
+.pstage .sub{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-top:2px}
+.pstage.act{border-color:var(--blue);box-shadow:inset 0 2px 0 var(--blue)}
+
+/* result */
+.resultcard{border-left:4px solid var(--line2);transition:border-color .2s,background .2s}
+.headline{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.idx{font-family:var(--mono);font-size:40px;font-weight:500;line-height:1}
+.pill{font-size:11.5px;font-weight:600;padding:4px 13px;border-radius:20px;border:1px solid;letter-spacing:.02em}
+.vs{font-size:12px;color:var(--ink3);margin:8px 0 0}
+.vs b{color:var(--green);font-weight:500}
+
+/* generic bars */
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:12.5px}
+.bar .lbl{width:96px;color:var(--ink2);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .track{flex:1;height:9px;background:var(--sunk);border-radius:5px;overflow:hidden;display:block}
+.bar .fill{display:block;height:100%;border-radius:4px;background:var(--blue);transition:width .2s}
+.bar .num{font-family:var(--mono);font-size:11px;color:var(--ink2);width:44px;text-align:right}
+.bar .cnt2{font-family:var(--mono);font-size:11px;color:var(--ink3);width:52px;text-align:right}
+.bar.on .lbl{color:var(--ink)} .bar.on .fill{background:var(--amber)}
+
+/* chain */
+.step{display:grid;grid-template-columns:1fr 60px 72px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.step:last-child{border-bottom:0}
+.step .nm small{display:block;font-size:11.5px;color:var(--ink3);font-family:var(--mono)}
+.step .lr{font-family:var(--mono);text-align:right}
+.step .lr.up{color:var(--red)} .step .lr.dn{color:var(--green)} .step .lr.flat{color:var(--ink3)}
+.step .out{font-family:var(--mono);text-align:right}
+.tag{font-family:var(--mono);font-size:11.5px;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:1px}
+.tag.el{background:rgba(163,101,15,.12);color:var(--amber)}
+.tag.re{background:rgba(47,125,92,.12);color:var(--green)}
+.tag.ph{background:rgba(192,57,43,.12);color:var(--red)}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-weight:500;color:var(--ink3);font-size:11px;letter-spacing:.03em;padding:0 8px 7px 0;border-bottom:1px solid var(--line)}
+td{padding:8px 8px 8px 0;border-bottom:1px solid var(--line);color:var(--ink2);vertical-align:top;font-size:12.5px}
+td.n,th.n{text-align:right;font-family:var(--mono);padding-right:0}
+tr:last-child td{border-bottom:0}
+tr.top td{background:rgba(163,101,15,.07)}
+tr.top td:first-child{color:var(--amber)}
+.scroll{max-height:280px;overflow-y:auto}
+
+svg.chart{width:100%;height:auto;display:block}
+.gridline{stroke:var(--line);stroke-width:1}
+.axlbl{fill:var(--ink3);font-family:var(--mono);font-size:11px}
+.curve{fill:none;stroke:var(--blue);stroke-width:2.5;stroke-linejoin:round}
+.bandzone{opacity:.06}
+.nowline{stroke:var(--amber);stroke-width:1.5;stroke-dasharray:3 3}
+
+.note{background:#FBFAF5;border:1px solid var(--line);border-left:2px solid var(--amber);border-radius:0 6px 6px 0;padding:12px 14px;font-size:12.5px;color:var(--ink2);line-height:1.6;margin-top:14px}
+.note b{color:var(--amber);font-weight:500}
+.note.red{border-left-color:var(--red)} .note.red b{color:var(--red)}
+
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:5px;overflow:hidden;margin-bottom:12px}
+.seg button{font-family:var(--sans);font-size:11.5px;background:transparent;color:var(--ink3);border:0;padding:6px 13px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line2)}
+.seg button[aria-pressed="true"]{background:var(--blue);color:#FFFFFF}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.presets button{font-family:var(--sans);font-size:11.5px;background:var(--sunk);color:var(--ink2);border:1px solid var(--line2);border-radius:14px;padding:5px 11px;cursor:pointer}
+.presets button[aria-pressed="true"]{background:var(--blue);color:#FFFFFF;border-color:var(--blue)}
+
+footer{margin-top:24px;padding-top:15px;border-top:1px solid var(--line);color:var(--ink3);font-size:11px;line-height:1.65;max-width:96ch}
+
+.drop{border:1.5px dashed var(--line2);border-radius:8px;padding:26px 18px;text-align:center;cursor:pointer;
+  color:var(--ink2);font-size:13px;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--blue);background:rgba(31,96,145,.04)}
+.drop b{color:var(--ink);font-weight:500}
+.drop small{display:block;margin-top:7px;color:var(--ink3);font-size:11px;line-height:1.5}
+.bars2{stroke:none}
+input[type=text]{width:100%;background:var(--sunk);color:var(--ink);border:1px solid var(--line2);border-radius:5px;padding:6px 9px;font-family:var(--mono);font-size:12.5px}
+.lrrow{display:flex;gap:6px;align-items:center;margin-bottom:5px;font-size:11.5px;color:var(--ink3)}
+.lrrow span{width:112px;font-family:var(--mono);font-size:11.5px}
+.lrrow input{flex:1;background:var(--sunk);color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:4px 7px;font-family:var(--mono);font-size:12px}
+.pillbtn{background:none;border:0;color:var(--red);cursor:pointer;font-size:11px;font-family:var(--sans);padding:0}
+
+.disc{width:100%;text-align:left;font-family:var(--sans);font-size:12.5px;color:var(--ink2);
+  background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:11px 15px;cursor:pointer}
+.disc:hover{border-color:var(--line2);color:var(--ink)}
+.disc .car{display:inline-block;margin-right:9px;color:var(--ink3);transition:transform .15s}
+.disc[aria-expanded="true"] .car{transform:rotate(90deg)}
+
+.wf{display:flex;flex-direction:column}
+.wfrow{display:grid;grid-template-columns:186px 1fr 62px;gap:16px;align-items:center;
+  min-height:52px;padding:8px 0;border-bottom:1px solid var(--line)}
+.wfrow:last-child{border-bottom:0}
+.wfrow .nm{font-size:13px;color:var(--ink2);min-width:0}
+.wfrow .nm b{display:block;color:var(--ink);font-weight:450;font-size:13px}
+.wfrow .nm small{font-family:var(--mono);font-size:11.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.wftrack{position:relative;height:22px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.wfbar{position:absolute;top:5px;bottom:5px;border-radius:3px;transition:left .2s,width .2s}
+.wfbase{position:absolute;top:5px;bottom:5px;background:var(--line2);opacity:.5;border-radius:3px}
+.wfrow .sc{font-family:var(--mono);font-size:14px;text-align:right;white-space:nowrap}
+.wfrow .arw{font-family:var(--sans);font-size:9.5px;margin-right:3px;vertical-align:1px}
+
+
+.wfrow.final .nm b{font-weight:600}
+.wfrow.final{border-top:2px solid var(--line2);border-bottom:0;margin-top:4px;padding-top:14px}
+.wfrow.final .sc{font-size:17px}
+.wfrow.off{opacity:.42}
+.wftag{font-family:var(--mono);font-size:11.5px;padding:1px 5px;border-radius:3px;margin-left:6px}
+
+.evhead{display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;padding:18px 0 20px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.evh{display:flex;flex-direction:column;gap:3px}
+.evh .k{font-size:11.5px;color:var(--ink2);letter-spacing:.06em;font-weight:500}
+.evh .v{font-family:var(--mono);font-size:32px;line-height:1;font-weight:500}
+.evh .b{font-size:11.5px}
+.evarrow{font-size:19px;color:var(--ink3);margin-top:19px}
+.evdelta{margin-left:auto;text-align:right}
+.evdelta .n{font-family:var(--mono);font-size:22px;font-weight:500;line-height:1}
+.evdelta .w{font-size:11px;color:var(--ink3);max-width:34ch;line-height:1.5;margin-top:5px}
+.evmain{display:grid;grid-template-columns:1fr 226px;gap:20px;align-items:start}
+.evside{border-left:1px solid var(--line);padding-left:18px}
+.evsideh{font-size:11px;font-weight:500;color:var(--ink3);letter-spacing:.05em;margin:0 0 10px;text-transform:uppercase}
+.evgrid{display:grid;grid-template-columns:1fr;gap:6px;max-height:430px;overflow-y:auto;padding-right:4px}
+.evgrid button{font-family:var(--sans);font-size:12px;text-align:left;background:var(--sunk);color:var(--ink2);
+  border:1px solid var(--line);border-radius:7px;padding:10px 12px;cursor:pointer;line-height:1.35;
+  display:grid;grid-template-columns:17px 1fr;gap:9px;align-items:start}
+.evgrid button .gi{font-size:13px;line-height:1.2}
+.evgrid button:hover{border-color:var(--blue);color:var(--ink)}
+.evgrid button i{display:block;font-style:normal;font-family:var(--mono);font-size:11px;color:var(--ink3);margin-top:2px}
+.act{border:1px solid var(--line);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 13px;background:var(--sunk)}
+.act .b{font-size:12.5px;font-weight:500;margin-bottom:3px}
+.act ul{margin:6px 0 0;padding-left:16px;font-size:11.5px;color:var(--ink2);line-height:1.6}
+.act .cav{font-size:11.5px;color:var(--ink3);margin-top:9px;line-height:1.5}
+.cross{font-family:var(--mono);font-size:11px;padding:1px 5px;border-radius:3px;background:rgba(163,101,15,.14);color:var(--amber);margin-left:6px}
+
+.wiz{display:flex;flex-direction:column;gap:2px}
+.wstep{display:grid;grid-template-columns:30px 1fr;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.wstep:first-child{border-top:0;padding-top:4px}
+.wnum{width:24px;height:24px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--ink2)}
+.wbody b{font-size:13px;font-weight:600;display:block}
+.wbody>p{font-size:11.5px;color:var(--ink3);margin:2px 0 9px;line-height:1.5}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font-family:var(--mono);font-size:11px;background:var(--sunk);color:var(--ink2);
+  border:1px solid var(--line2);border-radius:13px;padding:4px 11px;cursor:pointer}
+.chips button:hover{border-color:var(--blue);color:var(--ink)}
+.stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:9px;font-size:11px;color:var(--ink3)}
+.stats b{display:block;font-family:var(--mono);font-size:13px;color:var(--ink);font-weight:500}
+.lrrow2{display:grid;grid-template-columns:96px 1fr 58px;gap:8px;align-items:center;margin-bottom:6px}
+.lrrow2 .bd{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.lrrow2 select{font-size:11.5px;padding:5px 8px}
+.lrrow2 .lrv{font-family:var(--mono);font-size:12px;text-align:right}
+.lrrow2 .lrv.up{color:var(--red)} .lrrow2 .lrv.dn{color:var(--green)} .lrrow2 .lrv.flat{color:var(--ink3)}
+.cnt{font-size:11.5px;color:var(--ink3);font-family:var(--mono);margin-top:7px;line-height:1.6}
+
+.qsc{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-left:5px}
+.dsc{font-family:var(--mono);font-size:15px;font-weight:400;opacity:.85}
+.row .tm.soon{color:var(--amber)}
+.policy{border:1px solid rgba(163,101,15,.30);background:rgba(163,101,15,.06);border-radius:6px;
+  padding:9px 12px;font-size:11.5px;color:#6B5312;line-height:1.5;margin-bottom:11px}
+.optop{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding:14px 20px;border-bottom:1px solid var(--line);background:var(--sunk)}
+.obrand{display:flex;align-items:baseline;gap:11px}
+.obrand b{font-size:14px;font-weight:600}
+.obrand span{font-size:11.5px;color:var(--ink3)}
+.oshell{display:grid;grid-template-columns:370px 1fr;min-height:560px}
+.queue{border-right:1px solid var(--line);overflow-y:auto;max-height:640px}
+.odetail{overflow-y:auto;max-height:640px;padding:22px 26px 34px}
+.oempty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink3);font-size:13px}
+.counts{display:flex;gap:9px;flex-wrap:wrap}
+.cbtn{display:flex;align-items:center;gap:8px;background:var(--sunk);border:1px solid var(--line2);
+  border-radius:7px;padding:6px 13px;cursor:pointer;font-family:var(--sans);font-size:12.5px;color:var(--ink2)}
+.cbtn:hover{border-color:var(--blue)}
+.cbtn[aria-pressed="true"]{background:var(--raise);color:var(--ink);border-color:var(--blue)}
+.cbtn b{font-family:var(--mono);font-size:14px;font-weight:500}
+.dotc{width:8px;height:8px;border-radius:50%}
+
+.oshell{display:grid;grid-template-columns:406px 1fr;height:calc(100% - 61px)}
+.queue{border-right:1px solid var(--line);overflow-y:auto;background:var(--panel)}
+.qhead{padding:14px 20px 10px;font-size:11.5px;color:var(--ink2);letter-spacing:.04em;
+  position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);z-index:2}
+
+.row{display:grid;grid-template-columns:4px 1fr auto;gap:14px;padding:13px 20px 13px 0;
+  border-bottom:1px solid var(--line);cursor:pointer;align-items:center}
+.row:hover{background:var(--raise)}
+.row[aria-selected="true"]{background:var(--raise)}
+.row .edge{width:4px;height:100%;min-height:44px;border-radius:0 3px 3px 0}
+.row .who{min-width:0}
+.row .id{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+.row .meta{font-size:11.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.row .st{text-align:right;padding-right:20px}
+.chip{display:inline-block;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;border:1px solid;white-space:nowrap}
+.row .tm{display:block;font-family:var(--mono);font-size:11.5px;color:var(--ink3);margin-top:4px}
+
+.odetail{overflow-y:auto;padding:26px 32px 60px}
+.dhead{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  padding-bottom:20px;border-bottom:1px solid var(--line)}
+.dhead h2{font-size:23px;font-weight:600;margin:0 0 4px;letter-spacing:-.015em}
+.dhead .sub{font-size:13px;color:var(--ink2);margin:0}
+.status{text-align:right}
+.status .lbl{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.status .arrow{font-size:12px;color:var(--ink3);margin-top:3px}
+
+.sec{margin-top:26px}
+.sec>h3{font-size:12.5px;font-weight:600;color:var(--navy);letter-spacing:.06em;margin:0 0 13px}
+
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px}
+.fact{background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:11px 13px}
+.fact .k{font-size:11.5px;color:var(--ink3)}
+.fact .v{font-size:15px;margin-top:2px}
+.fact.hot{border-color:rgba(232,163,61,.45);background:rgba(232,163,61,.07)}
+.fact.hot .v{color:var(--amber)}
+
+.why{display:flex;flex-direction:column;gap:9px}
+.wcard{display:grid;grid-template-columns:26px 1fr;gap:12px;background:var(--sunk);
+  border:1px solid var(--line);border-left:3px solid;border-radius:0 7px 7px 0;padding:12px 14px}
+.wcard .ic{font-size:17px;line-height:1.2}
+.wcard b{font-size:13.5px;font-weight:500;display:block}
+.wcard p{margin:4px 0 0;font-size:12.5px;color:var(--ink2);line-height:1.6}
+
+.todo{display:flex;flex-direction:column;gap:2px}
+.task{display:flex;align-items:flex-start;gap:12px;padding:11px 13px;border:1px solid var(--line);
+  border-radius:7px;background:var(--sunk);cursor:pointer;margin-bottom:7px}
+.task:hover{border-color:var(--line2)}
+.task input{margin:3px 0 0;accent-color:var(--green);flex-shrink:0;width:15px;height:15px}
+.task .t{font-size:13px}
+.task .d{font-size:11.5px;color:var(--ink3);margin-top:2px;line-height:1.5}
+.task.done .t{color:var(--ink3);text-decoration:line-through}
+.task.done{opacity:.55}
+
+.trail{border-left:1px solid var(--line);margin-left:7px;padding-left:20px}
+.tev{position:relative;padding-bottom:16px}
+.tev:last-child{padding-bottom:0}
+.tev::before{content:"";position:absolute;left:-25px;top:5px;width:9px;height:9px;border-radius:50%;
+  background:var(--sunk);border:2px solid var(--line2)}
+.tev.chg::before{border-color:var(--amber);background:var(--amber)}
+.tev .w{font-size:13px}
+.tev .when{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.tev .band{font-size:11.5px;margin-top:2px}
+
+.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--ink3);line-height:1.6;max-width:80ch}
+
+.oempty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink3);font-size:13.5px}
+@media (max-width:960px){ .oshell{grid-template-columns:1fr} .queue{max-height:300px;border-right:0;border-bottom:1px solid var(--line)} }
+@media (max-width:1040px){ .evmain{grid-template-columns:1fr} .evside{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:16px}
+  .evgrid{grid-template-columns:repeat(auto-fill,minmax(186px,1fr));max-height:none} }
+@media (max-width:960px){ .cols,.split{grid-template-columns:1fr} .pipe{grid-template-columns:1fr 1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>OneReg DG Risk Assessment</h1>
+  <div class="tabs" role="tablist">
+    <button id="t1" role="tab" aria-selected="true" onclick="tab(1)">
+      <span class="tn">1</span>Risk score<em>score one shipment, see every stage</em></button>
+    <button id="t2" role="tab" aria-selected="false" onclick="tab(2)">
+      <span class="tn">2</span>What changes the score<em>apply real events, watch it move</em></button>
+    <button id="t3" role="tab" aria-selected="false" onclick="tab(3)">
+      <span class="tn">3</span>Data &amp; variables<em>load a file, add a stream</em></button>
+    <button id="t4" role="tab" aria-selected="false" onclick="tab(4)">
+      <span class="tn">4</span>Operator view<em>what OneReg staff would see</em></button>
+  </div>
+</header>
+
+<!-- ============ PAGE 1 ============ -->
+<div class="page on" id="pg1">
+<div class="cols">
+
+  <div>
+    <div class="card">
+      <h2>Shipment details</h2>
+      <label>Consignment</label>
+      <select id="pick" onchange="pickShipment()"></select>
+      <p class="lede" id="pickhint" style="margin:6px 0 0;font-size:11px"></p>
+
+      <label>DG class</label>
+      <select id="cls" onchange="clearPick();draw()"></select>
+
+      <label>Packing group</label>
+      <select id="pg" onchange="clearPick();draw()">
+        <option value="I">I — high danger</option>
+        <option value="II" selected>II — medium danger</option>
+        <option value="III">III — low danger</option>
+        <option value="NA">not assigned</option>
+      </select>
+
+      <label>Net quantity (kg)</label>
+      <input type="number" id="qty" value="2200" min="0" step="10" oninput="clearPick();draw()">
+
+      <label>Ramp temperature <span class="v" id="tv"></span></label>
+      <input type="range" id="temp" data-c="1" min="-10" max="60" step="1" value="34" oninput="markManual();draw()">
+      <label class="unk"><input type="checkbox" id="tu" onchange="draw()"> no METAR feed</label>
+
+      <label>Ground delay <span class="v" id="dv"></span></label>
+      <input type="range" id="delay" data-c="1" min="0" max="480" step="5" value="180" oninput="markManual();draw()">
+      <label class="unk"><input type="checkbox" id="du" onchange="draw()"> not recorded</label>
+
+      <label>Handler fatigue proxy <span class="v" id="fv"></span></label>
+      <input type="range" id="fat" data-c="1" min="0" max="1" step="0.01" value="0.55" oninput="markManual();draw()">
+      <label class="unk"><input type="checkbox" id="fu" onchange="draw()"> no FRMS feed</label>
+      <div id="customfields"></div>
+    </div>
+
+    <div class="card">
+      <h2>Stage 1 · prior by DG class</h2>
+      <p class="lede">How often each DG class appears in PHMSA incident records, set against its share of shipments. Above 1.0 means a class appears more often than its traffic volume alone would imply; below 1.0, less often.</p>
+      <div id="priorbars"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card resultcard" id="resultcard">
+      <h2>Result <span class="r" id="hgr"></span></h2>
+      <div class="headline">
+        <span class="idx" id="idx">—</span>
+        <span class="pill" id="band">—</span>
+      </div>
+      <p class="lede" id="scoreexp" style="margin:10px 0 0;font-size:13px;color:var(--ink2)"></p>
+      <p class="vs" id="vs"></p>
+    </div>
+
+    <div class="card">
+      <h2>Five-stage pipeline</h2>
+      <div class="pipe" id="pipe"></div>
+    </div>
+
+    <div class="card">
+      <h2>How the score was built <span class="r" id="chainsum"></span></h2>
+      <p class="lede">Each condition moves the score up or down from the starting point for this DG class. Bars show the size of each move.</p>
+      <div id="chain"></div>
+      <div class="note" id="note"></div>
+    </div>
+
+    <div class="card" style="padding:0;background:transparent;border:0">
+      <button class="disc" id="discbtn" onclick="toggleTech()" aria-expanded="false">
+        <span class="car">▸</span>Technical detail — case matching and calibration sources</button>
+    </div>
+
+    <div class="split" id="techwrap" style="display:none">
+      <div class="card">
+        <h2>Stage 3 · fuzzy case matching <span class="r" id="lam"></span></h2>
+        <p class="lede">Weighted k-NN over the 17-case base. Similarity is confidence-weighted; unreported fields score 0.5 rather than being dropped.</p>
+        <div class="scroll">
+          <table><thead><tr><th>Case</th><th class="n">Sim</th><th class="n">Out</th></tr></thead><tbody id="cbtab"></tbody></table>
+        </div>
+        <div class="note red" id="cbnote"></div>
+      </div>
+
+<div class="card">
+    <h2>The 17 cases being matched against</h2>
+    <p class="lede">What the panel on the left scores similarity against. Every case comes from a public investigation or enforcement record, with confidence following ISO/IEC Guide 98-3 Type A/B framing.</p>
+    <div class="scroll">
+      <table><thead><tr><th>Case</th><th>Class</th><th>Hazard group</th><th class="n">Temp</th><th class="n">Delay</th><th class="n">Fatigue</th><th class="n">Out</th><th class="n">Conf</th></tr></thead><tbody id="fulltab"></tbody></table>
+    </div>
+  </div>
+
+      <div class="card">
+        <h2>Calibration provenance</h2>
+        <p class="lede">What each component rests on. Three grades, kept separate.</p>
+        <table><tbody id="provtab"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ============ PAGE 2 ============ -->
+<div class="page" id="pg2">
+
+  <div class="card">
+    <h2>Scenario explorer <span class="r" id="evcount"></span></h2>
+    <p class="lede">A consignment is accepted and cleared. Then things happen to it. Add events in the order they occur and watch what each one does to the score — and what it should trigger on the ground.</p>
+
+    <div class="presets">
+      <button id="c-weather" onclick="chain('weather')">Weather disruption at origin</button>
+      <button id="c-swap" onclick="chain('swap')">Aircraft technical swap</button>
+      <button id="c-night" onclick="chain('night')">Overnight connection</button>
+      <button id="c-recover" onclick="chain('recover')">Recovered by intervention</button>
+      <button onclick="chain('clear')" style="border-color:var(--red);color:var(--red)">Clear</button>
+    </div>
+
+    <div class="evhead" id="evhead"></div>
+    <div class="evmain">
+      <div>
+        <svg class="chart" id="evchart" viewBox="0 0 900 340" role="img" aria-label="Risk score across events"></svg>
+        <div class="note" id="evnote"></div>
+      </div>
+      <div class="evside">
+        <h3 class="evsideh">Add an event</h3>
+        <div class="evgrid" id="evbank"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;background:transparent;border:0;margin-top:18px">
+    <button class="disc" id="sensbtn" onclick="toggleSens()" aria-expanded="true">
+      <span class="car">▸</span>What drives this score</button>
+  </div>
+
+  <div class="card" id="senswrap">
+    <h2>What actually drives this score</h2>
+    <p class="lede">Each bar is the range a single input can move this consignment, holding everything else where it is. Sorted by influence. DG class is included because it is the largest driver and does not appear in the sweep below.</p>
+    <svg class="chart" id="tornado" viewBox="0 0 900 250" role="img" aria-label="Range each input can move the score"></svg>
+    <div class="note" id="tornote"></div>
+
+    <h2 style="margin-top:22px">One condition at a time</h2>
+    <p class="lede">Sweeps a single input across its full range while every other input stays at the current scenario. The amber line marks the current value. Steps in the curve are the likelihood-ratio break points; flat sections are where the model is indifferent.</p>
+    <div class="seg" role="group">
+      <button id="s-delay" onclick="sweep('delay')" aria-pressed="true">Ground delay</button>
+      <button id="s-temp" onclick="sweep('temp')" aria-pressed="false">Ramp temperature</button>
+      <button id="s-fat" onclick="sweep('fat')" aria-pressed="false">Fatigue proxy</button>
+      <button id="s-qty" onclick="sweep('qty')" aria-pressed="false">Net quantity</button>
+    </div>
+    <svg class="chart" id="sens" viewBox="0 0 900 320" role="img" aria-label="Sensitivity curve"></svg>
+    <div class="note" id="snote"></div>
+  </div>
+
+
+</div>
+
+<!-- ============ PAGE 3 ============ -->
+<div class="page" id="pg3">
+
+  <div class="card">
+    <h2>Load a OneReg export</h2>
+    <p class="lede">In deployment the model reads consignments directly from OneReg's records. Loading a file here stands in for that connection, and lets the model be run against any other dataset. Column names are matched against the same alternatives the Python engine's column map uses, so an export does not have to be renamed. Fields the file does not carry stay missing and leave the score unchanged.</p>
+    <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+      <b>Drop an .xlsx or .csv here</b>, or click to choose a file
+      <small>Everything is parsed in your browser. No file is uploaded anywhere, which matters for commercially sensitive shipment records.</small>
+    </div>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadFile(this.files[0])">
+    <div id="loadinfo"></div>
+  </div>
+
+  <div class="card" id="batchcard" style="display:none">
+    <h2>Batch result <span class="r" id="batchn"></span></h2>
+    <div class="split">
+      <div>
+        <div id="banddist"></div>
+        <div class="note" id="batchnote"></div>
+      </div>
+      <div>
+        <svg class="chart" id="hist" viewBox="0 0 440 220" role="img" aria-label="Distribution of risk score"></svg>
+      </div>
+    </div>
+    <h2 style="margin-top:18px">Highest-scoring shipments <span class="r">top 15</span></h2>
+    <div class="scroll">
+      <table><thead><tr><th>Shipment</th><th>Class</th><th class="n">Delay</th><th class="n">Class alone</th><th class="n">Score</th><th>Band</th></tr></thead><tbody id="toptab"></tbody></table>
+    </div>
+    <button class="play" style="margin-top:13px" onclick="exportCSV()">Download scored rows (.csv)</button>
+  </div>
+
+  <div class="card">
+    <h2>Add a variable to the model</h2>
+    <p class="lede">The model reads its variables from configuration, not from code, so a new evidence stream can be added without touching the engine. This is the same operation as adding an entry to model_config.json in the Python package.</p>
+
+    <div class="wiz">
+      <div class="wstep">
+        <div class="wnum">1</div>
+        <div class="wbody">
+          <b>Choose a column</b>
+          <p>Any numeric column in the loaded file can become an evidence stream.</p>
+          <select id="newcol" onchange="colPicked()"><option value="">— load a file first —</option></select>
+          <div id="colstats"></div>
+          <div id="indep"></div>
+        </div>
+      </div>
+
+      <div class="wstep" id="w2" style="display:none">
+        <div class="wnum">2</div>
+        <div class="wbody">
+          <b>Split it into bands</b>
+          <p>Break points divide the range into bands that share a risk level. Quartiles are suggested so each band holds a similar number of shipments.</p>
+          <div class="chips" id="breakchips"></div>
+          <label style="margin-top:9px">Break points</label>
+          <input type="text" id="newbreaks" oninput="syncLRs()">
+          <div id="bandcounts"></div>
+        </div>
+      </div>
+
+      <div class="wstep" id="w3" style="display:none">
+        <div class="wnum">3</div>
+        <div class="wbody">
+          <b>Say what each band means for risk</b>
+          <p id="w3help">Pick a direction in plain language and the likelihood ratio is filled in for you. 1.00 means the band tells you nothing.</p>
+          <div class="seg" id="modeseg" style="margin-bottom:11px">
+            <button id="m-judge" aria-pressed="true" onclick="setMode('judge')">Set by judgement</button>
+            <button id="m-fit" aria-pressed="false" onclick="setMode('fit')">Fit from outcome data</button>
+          </div>
+          <div id="fitpick" style="display:none">
+            <label>Outcome column (1 = the adverse event occurred)</label>
+            <select id="outcol" onchange="runFit()"><option value="">— choose —</option></select>
+            <div id="fitinfo"></div>
+          </div>
+          <div id="lrinputs"></div>
+          <svg class="chart" id="lrpreview" viewBox="0 0 400 130" style="margin-top:10px"></svg>
+          <button class="play" style="margin-top:12px" onclick="addVar()">Add to model</button>
+          <button class="play" style="margin-top:12px;background:var(--line2);color:var(--ink)" onclick="exportDecl()">Copy as config JSON</button>
+          <span id="addmsg" style="font-size:11.5px;color:var(--ink3);margin-left:10px"></span>
+          <pre id="declout" style="display:none;background:var(--sunk);border:1px solid var(--line);border-radius:6px;
+            padding:11px 13px;font-family:var(--mono);font-size:11.5px;color:var(--ink2);overflow-x:auto;
+            white-space:pre;margin-top:11px;line-height:1.55"></pre>
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:20px">Variables now in the model</h2>
+    <table><tbody id="vartab"></tbody></table>
+    <div class="note" id="varnote"></div>
+  </div>
+
+</div>
+
+
+<!-- ============ PAGE 4 : operator view ============ -->
+<div class="page" id="pg4">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="optop">
+      <div class="obrand"><b>Dangerous goods acceptance queue</b><span id="stamp"></span></div>
+      <div class="counts" id="counts"></div>
+    </div>
+    <div class="oshell">
+      <div class="queue"><div class="qhead" id="qhead"></div><div id="rows"></div></div>
+      <div class="odetail" id="odetail"><div class="oempty">Select a consignment</div></div>
+    </div>
+  </div>
+  <div class="note" style="margin-top:16px"><b>This is the view a handler would use.</b> Which consignments need attention, why, and what to do
+    about them. The declaration and packing for every consignment here passed at acceptance and remain
+    valid; the status reflects the conditions it has met since.</div>
+</div>
+
+
+</div>
+
+<script>
+const CFG={
+ nominal:0.01, rrFloor:0.05, rrCeil:10.0, pFloor:0.0005, pCeil:0.95, K_POOL:5, K_NN:5,
+ inc:{"1":276,"2.1":224,"2.2":2565,"2.3":1,"3":5280,"4.1":119,"4.2":9,"4.3":14,"5.1":304,"5.2":13,"6.1":269,"6.2":149,"7":51,"8":1848,"9":3759},
+ exp:{"1":0.0098,"2.1":0.0616,"2.2":0.0820,"2.3":0.0086,"3":0.2082,"4.1":0.0632,"4.2":0.0242,"4.3":0.0152,"5.1":0.0744,"5.2":0.0214,"6.1":0.0718,"6.2":0.0244,"7":0.0120,"8":0.1132,"9":0.2100},
+ grp:{"1":"Reactivity/shock","2.1":"Pressure/containment","2.2":"Pressure/containment","2.3":"Pressure/containment","3":"Thermal-reactive","4.1":"Thermal-reactive","4.2":"Thermal-reactive","4.3":"Thermal-reactive","5.1":"Thermal-reactive","5.2":"Thermal-reactive","6.1":"Degradation-sensitive","6.2":"Degradation-sensitive","7":"Radiation-exposure","8":"Containment-integrity","9":"Thermal-reactive"},
+ sev:{I:1.0,II:0.7,III:0.4,NA:0.55}, sevDiv:12, sevCap:0.35,
+ bands:[["Low",0.75,"#2F7D5C"],["Moderate",1.25,"#1F6091"],["Elevated",2.0,"#A3650F"],["High",1e9,"#C0392B"]],
+ W:{t:0.35,d:0.25,f:0.2,g:0.2}, T_RANGE:65, D_RANGE:12
+};
+const VARS={
+ delay:{label:"Ground delay",unit:"min",breaks:[0,60,120,180,240],lr:[0.9,1.0,1.2,1.6,2.2,2.8],min:0,max:480,step:5},
+ temp: {label:"Ramp temperature",unit:"°C",breaks:[15,25,35,45],lr:[0.7,0.9,1.3,2.0,3.0],min:-10,max:60,step:1},
+ fat:  {label:"Handler fatigue",unit:"",breaks:[0.3,0.6,0.8],lr:[0.8,1.0,1.4,1.9],min:0,max:1,step:0.01},
+ qty:  {label:"Net quantity",unit:"kg",min:0,max:5000,step:50}
+};
+const CASES=[
+ {id:'C001',cls:'9',hg:'Thermal-reactive',pg:'II',qty:2200,temp:34,delay:3,fat:0.55,out:1,conf:0.85},
+ {id:'C002',cls:'9',hg:'Thermal-reactive',pg:'II',qty:150,temp:null,delay:null,fat:null,out:1,conf:0.6},
+ {id:'C003',cls:'9',hg:'Thermal-reactive',pg:'II',qty:80,temp:null,delay:null,fat:null,out:0,conf:0.6},
+ {id:'C004',cls:'9',hg:'Thermal-reactive',pg:'II',qty:900,temp:null,delay:null,fat:null,out:1,conf:0.6},
+ {id:'C005',cls:'9',hg:'Thermal-reactive',pg:'II',qty:40,temp:null,delay:null,fat:null,out:1,conf:0.5},
+ {id:'C006',cls:'5.1',hg:'Thermal-reactive',pg:'II',qty:1600,temp:null,delay:null,fat:null,out:1,conf:0.75},
+ {id:'C007',cls:'5.1',hg:'Thermal-reactive',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.75},
+ {id:'C008',cls:'5.1',hg:'Thermal-reactive',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.5},
+ {id:'C009',cls:'9',hg:'Thermal-reactive',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.4},
+ {id:'C010',cls:'8',hg:'Containment-integrity',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.75},
+ {id:'C011',cls:'9',hg:'Thermal-reactive',pg:'III',qty:null,temp:null,delay:null,fat:null,out:0,conf:0.75},
+ {id:'C012',cls:'3+9',hg:'Thermal-reactive',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.75},
+ {id:'C013',cls:'9+3',hg:'Thermal-reactive',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.75},
+ {id:'C014',cls:'unsp.',hg:'Thermal-reactive',pg:'NA',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.5},
+ {id:'C015',cls:'1',hg:'Reactivity/shock',pg:'NA',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.7},
+ {id:'C016',cls:'9',hg:'Thermal-reactive',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.75},
+ {id:'C017',cls:'9',hg:'Thermal-reactive',pg:'II',qty:null,temp:null,delay:null,fat:null,out:1,conf:0.75}
+];
+const $=id=>document.getElementById(id);
+const T=Object.values(CFG.inc).reduce((a,b)=>a+b,0);
+let sweepVar='delay';
+
+/* One colour per input, used in the waterfall, the tornado and the sweep, so
+   the same variable is recognisable wherever it appears. Direction is carried
+   by an arrow rather than by hue, which frees the hue to identify the
+   variable instead of repeating what the arrow already says. */
+const VARCOL={ baseline:'#2B3542', delay:'#1F6091', temp:'#A3650F',
+               fat:'#2F7D5C', custom:'#6B4FA8', final:null };
+
+/* Reference distribution: the risk index at each percentile of a scored
+   reference fleet. The displayed score is a shipment's position against it,
+   so 87 means riskier than 87% of dangerous goods shipments. A ratio like
+   2.42 needs explaining before it means anything; a percentile does not. */
+const REF=[0.0184,0.0369,0.0517,0.0617,0.0723,0.0812,0.0974,0.1154,0.1272,0.1434,0.157,0.1705,0.1792,0.1929,0.2071,0.2218,0.2338,0.2511,0.2681,0.2833,0.3005,0.3176,0.3295,0.35,0.3676,0.3908,0.4131,0.4325,0.4603,0.4813,0.52,0.551,0.5826,0.6235,0.656,0.6961,0.7346,0.7825,0.8294,0.8623,0.8931,0.9353,0.9777,1.0075,1.041,1.0758,1.1083,1.14,1.1707,1.2002,1.2329,1.2554,1.2848,1.3089,1.3398,1.3743,1.4215,1.4693,1.5126,1.5499,1.5907,1.6173,1.6601,1.7058,1.7458,1.7859,1.837,1.8639,1.8962,1.949,1.9949,2.0519,2.1179,2.17,2.2225,2.2823,2.3394,2.3889,2.446,2.5405,2.6003,2.6996,2.7792,2.8481,2.9642,3.0273,3.1166,3.2825,3.3781,3.5272,3.6604,3.8089,4.1099,4.3377,4.6221,4.9645,5.5134,6.004,6.6098,7.4543,11.949];
+function toScore(idx){
+  let lo=0, hi=REF.length-1;
+  if(idx<=REF[0]) return 0;
+  if(idx>=REF[hi]) return 100;
+  while(lo<hi-1){ const mid=(lo+hi)>>1; if(REF[mid]<=idx) lo=mid; else hi=mid; }
+  return Math.max(0,Math.min(100,lo));
+}
+
+function relRisk(c){const e=CFG.exp[c];if(!e)return null;return Math.min(CFG.rrCeil,Math.max(CFG.rrFloor,(CFG.inc[c]/T)/e));}
+function stepLR(v,val){let i=0;for(const b of v.breaks){if(val>b)i++;else break;}return v.lr[i];}
+const SCORE_BANDS=[["Low",40,"#2F7D5C"],["Moderate",65,"#1F6091"],["Elevated",85,"#A3650F"],["High",101,"#C0392B"]];
+function bandOf(i){const s=toScore(i);for(const b of SCORE_BANDS)if(s<b[1])return b;return SCORE_BANDS[3];}
+
+/* Editing a condition does not change which consignment is selected — it is
+   still that consignment, asked a what-if question. The hint records that the
+   values no longer match what was reported, and offers a way back. */
+function showPickHint(){
+  const h=$('pickhint');
+  if(!PICKED){ h.innerHTML=''; return; }
+  const r=PICKED.reported;
+  const changed = Math.abs(+$('temp').value - r.temp) > 0.5
+    || Math.abs(+$('delay').value - r.delay) > 0.5
+    || Math.abs(+$('fat').value - r.fat) > 0.005
+    || $('tu').checked!==r.tu || $('du').checked!==r.du || $('fu').checked!==r.fu;
+  h.innerHTML = PICKED.label + (changed
+    ? ` · <span style="color:var(--amber)">conditions changed from reported</span>
+        (${Math.round(r.temp)} °C, ${Math.round(r.delay)} min)
+        <a href="#" onclick="resetPick();return false" style="color:var(--blue);text-decoration:none">reset</a>`
+    : '. Conditions as last reported.');
+}
+
+function clearPick(){ PICKED=null; const p=$('pick'); if(p) p.value=''; showPickHint(); }
+
+function resetPick(){
+  if(!PICKED) return;
+  const r=PICKED.reported;
+  $('temp').value=r.temp; $('delay').value=r.delay; $('fat').value=r.fat;
+  $('tu').checked=r.tu; $('du').checked=r.du; $('fu').checked=r.fu;
+  draw();
+}
+
+function markManual(){ showPickHint(); }
+
+function inputs(){
+  const unk={delay:$('du').checked,temp:$('tu').checked,fat:$('fu').checked};
+  const extra={};
+  CUSTOM.forEach((c,i)=>{
+    const el=$('cx'+i), un=$('cxu'+i);
+    if(el && un && !un.checked) extra[c.col]=+el.value;
+  });
+  return {cls:$('cls').value,pg:$('pg').value,qty:Math.max(0,+$('qty').value||0),
+          raw:{delay:+$('delay').value,temp:+$('temp').value,fat:+$('fat').value},unk,extra};
+}
+
+/* One control per declared variable, so it can actually move the score here.
+   Without this the variable reaches compute() with no value, scores LR 1.0,
+   and sits in the chain doing nothing. */
+function renderCustomFields(){
+  $('customfields').innerHTML=CUSTOM.map((c,i)=>{
+    const dec=(c.max-c.min)<=5?0.01:1;
+    return `<label style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+        ${c.col} <span class="v" id="cxv${i}"></span></label>
+      <input type="range" id="cx${i}" min="${c.min}" max="${c.max}" step="${dec}" value="${c.med}" oninput="draw()">
+      <label class="unk"><input type="checkbox" id="cxu${i}" onchange="draw()"> not reported</label>`;
+  }).join('');
+}
+
+let CUSTOM=[];   // user-declared variables, mirroring config/model_config.json
+
+function compute(inp){
+  const rr=relRisk(inp.cls);
+  const prior=Math.min(CFG.pCeil,Math.max(CFG.pFloor,CFG.nominal*rr));
+  let odds=prior/(1-prior); const chain=[];
+  ['delay','temp','fat'].forEach(k=>{
+    const lr=inp.unk[k]?1.0:stepLR(VARS[k],inp.raw[k]);
+    odds*=lr; chain.push({k,lr,observed:!inp.unk[k],value:inp.raw[k],post:odds/(1+odds)});
+  });
+  CUSTOM.forEach(cv=>{
+    const val=inp.extra?inp.extra[cv.col]:undefined;
+    const obs=val!==undefined&&val!==null&&val!==''&&!isNaN(+val);
+    const lr=obs?stepLR(cv,+val):1.0;
+    odds*=lr; chain.push({k:cv.col,custom:true,cal:cv.cal,lr,observed:obs,value:obs?+val:null,post:odds/(1+odds)});
+  });
+  const posterior=odds/(1+odds);
+  const sev=Math.min(1,CFG.sev[inp.pg]+Math.min(CFG.sevCap,Math.log10(inp.qty+1)/CFG.sevDiv));
+  const score=Math.min(0.99,posterior*sev);
+  return {rr,prior,chain,posterior,sev,score,idx:score/CFG.nominal};
+}
+
+/* Stage 3: fuzzy weighted k-NN with confidence weighting and partial pooling */
+function fuzzy(inp){
+  const hg=CFG.grp[inp.cls];
+  const sim=c=>{
+    const t = (inp.unk.temp||c.temp===null) ? 0.5 : 1-Math.min(1,Math.abs(inp.raw.temp-c.temp)/CFG.T_RANGE);
+    const d = (inp.unk.delay||c.delay===null) ? 0.5 : 1-Math.min(1,Math.abs(inp.raw.delay/60-c.delay)/CFG.D_RANGE);
+    const f = (inp.unk.fat||c.fat===null) ? 0.5 : 1-Math.min(1,Math.abs(inp.raw.fat-c.fat));
+    const g = c.hg===hg ? 1 : 0;
+    return (CFG.W.t*t+CFG.W.d*d+CFG.W.f*f+CFG.W.g*g)*c.conf;
+  };
+  const scored=CASES.map(c=>({...c,s:sim(c)})).sort((a,b)=>b.s-a.s);
+  const top=scored.slice(0,CFG.K_NN);
+  const num=top.reduce((a,c)=>a+c.s*c.out,0), den=top.reduce((a,c)=>a+c.s,0);
+  const fuzzyRate=den>0?num/den:0.5;
+  const gN=CASES.reduce((a,c)=>a+c.conf*c.out,0), gD=CASES.reduce((a,c)=>a+c.conf,0);
+  const globalRate=gN/gD;
+  const grpCases=CASES.filter(c=>c.hg===hg), n=grpCases.length;
+  const lambda=n/(n+CFG.K_POOL);
+  const calibrated=lambda*fuzzyRate+(1-lambda)*globalRate;
+  return {scored,top,fuzzyRate,globalRate,calibrated,lambda,n,hg};
+}
+
+/* In deployment the model reads consignments from OneReg's system, so the
+   shipments are simply present. The picker lists those; a file loaded on the
+   data tab adds its rows to the same list. */
+function fillPicker(){
+  const sel=$('pick'); const keep=sel.value;
+  let html='<option value="">Select shipment</option>';
+  html+='<optgroup label="In the system">'+OSHIP.map(s=>
+    `<option value="q:${s.id}">${s.id} — ${s.route} · ${s.what}</option>`).join('')+'</optgroup>';
+  if(ROWS.length){
+    html+=`<optgroup label="From ${CURFILE||'loaded file'}">`+SCORED.slice(0,150).map(s=>
+      `<option value="f:${s.id}">${s.id} — Class ${s.cls}</option>`).join('')+'</optgroup>';
+  }
+  sel.innerHTML=html;
+  if(keep) sel.value=keep;
+}
+
+let PICKED=null;   // {label, reported:{temp,delay,fat,unk}} for the selected consignment
+
+function pickShipment(){
+  const v=$('pick').value;
+  if(!v){ PICKED=null; showPickHint(); draw(); return; }
+  const [src,id]=[v.slice(0,1), v.slice(2)];
+  if(src==='q'){
+    const s=OSHIP.find(x=>x.id===id); if(!s) return;
+    const c=s.trail[s.trail.length-1][2];
+    $('cls').value=s.cls; $('pg').value=s.pg; $('qty').value=s.qty;
+    $('temp').value=c.temp; $('delay').value=c.delay; $('fat').value=c.night?0.7:0.35;
+    ['tu','du','fu'].forEach(k=>$(k).checked=false);
+    PICKED={label:`${s.route} · ${s.un} · Accepted ${s.acc}`,
+            reported:{temp:c.temp, delay:c.delay, fat:c.night?0.7:0.35, tu:false, du:false, fu:false}};
+    showPickHint();
+  } else {
+    const row=ROWS.find(r=>String(r['Shipment ID']??r.shipment_id)===id); if(!row) return;
+    const inp=rowToInput(row);
+    if(inp.cls) $('cls').value=inp.cls;
+    $('pg').value=inp.pg; $('qty').value=inp.qty;
+    $('delay').value=inp.unk.delay?0:inp.raw.delay;
+    $('temp').value=inp.unk.temp?20:inp.raw.temp;
+    $('fat').value=inp.unk.fat?0.5:inp.raw.fat;
+    $('du').checked=inp.unk.delay; $('tu').checked=inp.unk.temp; $('fu').checked=inp.unk.fat;
+    const missing=Object.keys(inp.unk).filter(k=>inp.unk[k]).length;
+    PICKED={label:`From ${CURFILE}${missing?' · '+missing+' condition'+(missing>1?'s':'')+' not present in this export':''}`,
+            reported:{temp:inp.unk.temp?20:inp.raw.temp, delay:inp.unk.delay?0:inp.raw.delay,
+                      fat:inp.unk.fat?0.5:inp.raw.fat, tu:inp.unk.temp, du:inp.unk.delay, fu:inp.unk.fat}};
+    showPickHint();
+  }
+  draw();
+}
+
+function draw(){
+  const inp=inputs();
+  $('tv').textContent=inp.unk.temp?'no feed':inp.raw.temp+' °C';
+  $('dv').textContent=inp.unk.delay?'not recorded':inp.raw.delay+' min';
+  $('fv').textContent=inp.unk.fat?'no feed':inp.raw.fat.toFixed(2);
+  ['temp','delay','fat'].forEach(k=>{$(k).classList.toggle('dim',inp.unk[k]);$(k).disabled=inp.unk[k];});
+  CUSTOM.forEach((c,i)=>{
+    const el=$('cx'+i), un=$('cxu'+i), lab=$('cxv'+i);
+    if(!el||!un||!lab) return;
+    lab.textContent = un.checked ? 'not reported' : el.value;
+    el.classList.toggle('dim',un.checked); el.disabled=un.checked;
+  });
+
+  const r=compute(inp), band=bandOf(r.idx), fz=fuzzy(inp);
+
+  const sc=toScore(r.idx);
+  $('idx').innerHTML=sc+'<span style="font-size:17px;color:var(--ink3);font-weight:400">/100</span>';
+  $('idx').style.color=band[2];
+  $('band').textContent=band[0]; $('band').style.color='#fff';
+  $('band').style.background=band[2]; $('band').style.borderColor=band[2];
+  const rc=$('resultcard'); if(rc){ rc.style.borderLeftColor=band[2]; }
+  $('hgr').textContent=fz.hg;
+  $('scoreexp').innerHTML=`Riskier than <b style="color:var(--ink)">${sc}%</b> of dangerous goods shipments. `
+    +`<span style="color:var(--ink3)">Equivalent to ${r.idx.toFixed(2)}× the risk of a typical consignment.</span>`;
+  const priorIdx=Math.min(0.99,r.prior*r.sev)/CFG.nominal;
+  const mv=r.idx/priorIdx;
+  $('vs').innerHTML='OneReg verdict: <b>COMPLIANT</b> — a single categorical outcome with no gradation. '
+    +(Math.abs(mv-1)<0.005?'Evidence has not moved the score off the prior.'
+      :'Evidence has moved the score '+(mv>1?'up ':'down ')+Math.abs((mv-1)*100).toFixed(0)+'% from the prior alone.');
+
+  // pipeline
+  $('pipe').innerHTML=[
+   ['STAGE 1','Class-conditioned prior',(r.prior*100).toFixed(2)+'%','rel risk '+r.rr.toFixed(2)],
+   ['STAGE 2','Evidence streams',r.chain.filter(c=>c.observed).length+'/3','observed'],
+   ['STAGE 3','LR calibration','λ '+fz.lambda.toFixed(2),'n='+fz.n+' in group'],
+   ['STAGE 4','Bayesian update',(r.posterior*100).toFixed(2)+'%','posterior'],
+   ['STAGE 5','Severity weighting','×'+r.sev.toFixed(2),'PG '+inp.pg]
+  ].map((s,i)=>`<div class="pstage${i===0?' act':''}"><div class="n">${s[0]}</div><div class="t">${s[1]}</div><div class="val">${s[2]}</div><div class="sub">${s[3]}</div></div>`).join('');
+
+  // how the score was built: a waterfall in score units
+  const baseIdx=Math.min(0.99,r.prior*r.sev)/CFG.nominal;
+  const pts=[{label:'Class '+inp.cls+' baseline', sub:fz.hg, idx:baseIdx, tag:['real','re'],
+              start:true, colour:VARCOL.baseline}];
+  r.chain.forEach(c=>{
+    const v=VARS[c.k];
+    const label=c.custom?c.k:v.label;
+    const sub=c.observed?(c.value+' '+((!c.custom&&v.unit)||'')).trim():'not reported';
+    pts.push({label, sub, idx:Math.min(0.99,c.post*r.sev)/CFG.nominal,
+              tag:c.custom?[{ph:'assumed',el:'elicited',re:'fitted'}[c.cal]||'assumed',c.cal]:['elicited','el'],
+              off:!c.observed, colour:c.custom?VARCOL.custom:(VARCOL[c.k]||VARCOL.delay)});
+  });
+  const scores=pts.map(p=>toScore(p.idx));
+  const finalScore=toScore(r.idx);
+  const span=Math.max(...scores.concat([finalScore]),100)||100;
+  const tagCol={re:'#2F7D5C',el:'#A3650F',ph:'#C0392B'};
+
+  let wf=pts.map((p,i)=>{
+    const s=scores[i], prev=i?scores[i-1]:s;
+    const from=Math.min(prev,s), to=Math.max(prev,s);
+    const rise=s>prev, flat=s===prev;
+    const col=p.colour;
+    const arrow=i===0?'':(flat?'':(rise?'▲':'▼'));
+    const delta=i===0?'':(flat?'—':(rise?'+':'')+(s-prev));
+    return `<div class="wfrow${p.start?' start':''}${p.off?' off':''}">
+      <div class="nm"><b>${p.label}</b><small>${p.sub}</small></div>
+      <div class="wftrack">
+        ${i===0
+          ? `<div class="wfbar" style="left:0;width:${Math.max(0.6,s)}%;background:${col}"></div>`
+          : `<div class="wfbase" style="left:0;width:${from}%"></div>${
+              flat?'':`<div class="wfbar" style="left:${from}%;width:${Math.max(0.6,to-from)}%;background:${col}"></div>`}`}
+      </div>
+      <div class="sc" style="color:${col}">${i===0?s:`<span class="arw">${arrow}</span>${delta||s}`}</div>
+    </div>`;
+  }).join('');
+  wf+=`<div class="wfrow final">
+      <div class="nm"><b>Final score</b><small>PG ${inp.pg} · ${inp.qty} kg</small></div>
+      <div class="wftrack"><div class="wfbar" style="left:0;width:${Math.max(1,finalScore)}%;background:${band[2]}"></div></div>
+      <div class="sc" style="color:${band[2]}">${finalScore}</div></div>`;
+  $('chain').innerHTML='<div class="wf">'+wf+'</div>';
+  const moved=finalScore-scores[0];
+  $('chainsum').textContent = moved===0 ? 'conditions changed nothing'
+    : (moved>0?'+':'')+moved+' points from conditions';
+
+  const miss=Object.keys(inp.unk).filter(k=>inp.unk[k]);
+  $('note').innerHTML = miss.length===3
+   ? `<b>No conditions reported.</b> With nothing observed, the score stays at the baseline for this DG class.`
+   : miss.length
+   ? `<b>${miss.length} condition${miss.length>1?'s':''} not reported.</b> Unreported conditions leave the score where it was, so it stays closer to the class baseline.`
+   : `<b>All conditions reported.</b> Each one moves the score in turn. The direction of each move is supported by published findings; the exact sizes are estimated rather than measured.`;
+
+  // prior bars
+  const order=Object.keys(CFG.inc).map(c=>({c,rr:relRisk(c)})).sort((a,b)=>b.rr-a.rr);
+  const mx=Math.max(...order.map(o=>o.rr));
+  $('priorbars').innerHTML=order.map(o=>
+   `<div class="bar${o.c===inp.cls?' on':''}"><span class="lbl">Class ${o.c}</span><span class="track"><span class="fill" style="width:${100*o.rr/mx}%"></span></span><span class="num">${o.rr.toFixed(2)}</span></div>`).join('');
+
+  // fuzzy panel
+  $('lam').textContent='λ = '+fz.lambda.toFixed(2)+' · n='+fz.n;
+  $('cbtab').innerHTML=fz.scored.map((c,i)=>
+   `<tr class="${i<CFG.K_NN?'top':''}"><td>${c.id}</td><td class="n">${c.s.toFixed(3)}</td><td class="n">${c.out}</td></tr>`).join('');
+  $('cbnote').innerHTML=`<b>Matched rate ${(fz.fuzzyRate*100).toFixed(1)}%, pooled to ${(fz.calibrated*100).toFixed(1)}% against a global ${(fz.globalRate*100).toFixed(1)}%.</b> This does not enter the score. Only C001 carries all three evidence values and only two of seventeen cases are non-incidents, so the matched rate barely varies with the shipment presented. The method is shown running; the case base is too thin to let it drive anything.`;
+
+  // provenance
+  $('provtab').innerHTML=[
+   ['Stage 1 prior','real','#2F7D5C'],['Exposure denominator','synthetic','#1F6091'],
+   ['Delay response curve','elicited','#A3650F'],['Temperature response curve','elicited','#A3650F'],
+   ['Fatigue response curve','elicited','#A3650F'],['Severity function','placeholder','#C0392B'],
+   ['Case base (17 incidents)','real','#2F7D5C'],['Operator conditioning','excluded 3.9×','#C0392B']
+  ].map(p=>`<tr><td>${p[0]}</td><td class="n" style="color:${p[2]}">${p[1]}</td></tr>`).join('');
+
+  if(typeof showPickHint==='function') showPickHint();
+  sweep(sweepVar,true);
+  if(typeof tornado==='function') tornado();
+  if(typeof renderChain==='function') renderChain();
+}
+
+/* Which input actually drives the score.
+   Sweeps each input across its full range while everything else stays where
+   it is, and reports the span. DG class is included deliberately: it is the
+   single largest driver and is not one of the sweepable conditions, so a
+   chart of conditions alone would misrepresent what moves the number. */
+function tornado(){
+  const inp=inputs();
+  const rows=[];
+
+  ['delay','temp','fat','qty'].forEach(k=>{
+    const v=VARS[k]; let lo=101, hi=-1, loAt=null, hiAt=null;
+    for(let i=0;i<=60;i++){
+      const val=v.min+(v.max-v.min)*i/60;
+      const tt=JSON.parse(JSON.stringify(inp));
+      if(k==='qty') tt.qty=val; else { tt.raw[k]=val; tt.unk[k]=false; }
+      const s=toScore(compute(tt).idx);
+      if(s<lo){lo=s;loAt=val;} if(s>hi){hi=s;hiAt=val;}
+    }
+    rows.push({name:v.label, lo, hi, span:hi-lo,
+      note:`${Math.round(loAt)}${v.unit||''} → ${Math.round(hiAt)}${v.unit||''}`,
+      kind:'condition'});
+  });
+
+  // DG class, swept across every class in the prior
+  let clo=101, chi=-1, cloAt='', chiAt='';
+  Object.keys(CFG.inc).forEach(c=>{
+    const tt=JSON.parse(JSON.stringify(inp)); tt.cls=c;
+    const s=toScore(compute(tt).idx);
+    if(s<clo){clo=s;cloAt=c;} if(s>chi){chi=s;chiAt=c;}
+  });
+  rows.push({name:'DG class', lo:clo, hi:chi, span:chi-clo,
+    note:`Class ${cloAt} → Class ${chiAt}`, kind:'prior'});
+
+  CUSTOM.forEach(cv=>{
+    let lo=101, hi=-1;
+    for(let i=0;i<=40;i++){
+      const val=cv.min+(cv.max-cv.min)*i/40;
+      const tt=JSON.parse(JSON.stringify(inp));
+      tt.extra=tt.extra||{}; tt.extra[cv.col]=val;
+      const s=toScore(compute(tt).idx);
+      if(s<lo)lo=s; if(s>hi)hi=s;
+    }
+    rows.push({name:cv.col, lo, hi, span:hi-lo, note:`${cv.min} → ${cv.max}`, kind:'added'});
+  });
+
+  rows.sort((a,b)=>b.span-a.span);
+
+  const W=900,H=Math.max(180,56+rows.length*36),L=150,R=76,Tp=26,B=34, iw=W-L-R, ih=H-Tp-B;
+  const X=v=>L+iw*Math.min(v,100)/100;
+  const rowH=ih/rows.length, bh=Math.min(17,rowH*0.5);
+  const cur=toScore(compute(inp).idx);
+  let s='';
+
+  [[0,40,'#2F7D5C'],[40,65,'#1F6091'],[65,85,'#A3650F'],[85,100,'#C0392B']].forEach(z=>{
+    s+=`<rect x="${X(z[0])}" y="${Tp}" width="${X(z[1])-X(z[0])}" height="${ih}" fill="${z[2]}" opacity=".10"/>`;});
+  [0,25,50,75,100].forEach(v=>{
+    s+=`<line x1="${X(v)}" y1="${Tp}" x2="${X(v)}" y2="${Tp+ih}" stroke="#E2E7EE" stroke-width="1"/>`;
+    s+=`<text class="axlbl" x="${X(v)}" y="${Tp+ih+16}" text-anchor="middle">${v}</text>`;});
+  s+=`<text class="axlbl" x="${L+iw/2}" y="${H-4}" text-anchor="middle">Risk score this input can produce</text>`;
+  s+=`<text x="${W-10}" y="${Tp-13}" text-anchor="end" fill="#47525F" style="font-family:var(--sans);font-size:9px">Range</text>`;
+
+  // where the consignment sits now
+  s+=`<line x1="${X(cur)}" y1="${Tp-8}" x2="${X(cur)}" y2="${Tp+ih}" stroke="#111C2B" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>`;
+  s+=`<text x="${X(cur)}" y="${Tp-13}" text-anchor="middle" fill="#3B4757" style="font-family:var(--sans);font-size:9.5px">Now ${cur}</text>`;
+
+  const col={prior:'#C0392B', condition:'#1F6091', added:'#A3650F'};
+  rows.forEach((r,i)=>{
+    const y=Tp+rowH*i+rowH/2;
+    // label block centred on the bar, span values in their own right-hand column
+    s+=`<text x="${L-14}" y="${y-2}" text-anchor="end" fill="#111C2B" style="font-family:var(--sans);font-size:11.5px">${r.name}</text>`;
+    s+=`<text x="${L-14}" y="${y+10}" text-anchor="end" fill="#47525F" style="font-family:var(--mono);font-size:9.5px">${r.note}</text>`;
+    s+=`<rect x="${X(r.lo)}" y="${y-bh/2}" width="${Math.max(2,X(r.hi)-X(r.lo))}" height="${bh}" rx="3" fill="${col[r.kind]}" opacity=".85"/>`;
+    s+=`<text x="${W-10}" y="${y+4}" text-anchor="end" fill="${col[r.kind]}" style="font-family:var(--mono);font-size:11.5px">${r.span}</text>`;
+  });
+  $('tornado').innerHTML=s;
+
+  const top=rows[0], conds=rows.filter(r=>r.kind==='condition');
+  const widest=conds.length?conds.reduce((a,b)=>a.span>=b.span?a:b):null;
+  const ratio=(widest&&widest.span>0)?(top.span/widest.span):null;
+  $('tornote').innerHTML=`<b>${top.name} moves this consignment ${top.span} points`
+   +(widest&&top!==widest&&ratio?`, about ${ratio.toFixed(1)}× the widest condition (${widest.name.toLowerCase()}, ${widest.span}).`:'.')
+   +`</b> Each bar spans the scores that input alone could produce, with everything else held where it is. The dashed line marks where this consignment sits now.`;
+}
+
+function sweep(k,keep){
+  sweepVar=k;
+  ['delay','temp','fat','qty'].forEach(n=>$('s-'+n).setAttribute('aria-pressed',n===k));
+  const inp=inputs(), v=VARS[k];
+
+  // One curve. This chart answers a different question from the scenario
+  // chart above it: not what this consignment went through, but what the
+  // model would say at any value of this condition. Drawing a second,
+  // scenario line here duplicated the comparison the scenario chart already
+  // makes on a single timeline, and made the two charts look alike.
+  const N=90, pts=[];
+  for(let i=0;i<=N;i++){
+    const val=v.min+(v.max-v.min)*i/N;
+    const tt=JSON.parse(JSON.stringify(inp));
+    if(k==='qty') tt.qty=val; else { tt.raw[k]=val; tt.unk[k]=false; }
+    pts.push({x:val, s:toScore(compute(tt).idx)});
+  }
+  const curVal = k==='qty'?inp.qty:inp.raw[k];
+  const curScore = toScore(compute(inp).idx);
+
+  const W=900,H=300,L=48,R=52,Tp=16,B=48, iw=W-L-R, ih=H-Tp-B;
+  const X=x=>L+iw*(x-v.min)/(v.max-v.min);
+  const Y=y=>Tp+ih-ih*Math.min(y,100)/100;
+  let s='';
+  [[0,40,'#2F7D5C','Low'],[40,65,'#1F6091','Moderate'],[65,85,'#A3650F','Elevated'],[85,100,'#C0392B','High']]
+   .forEach(z=>{
+    s+=`<rect x="${L}" y="${Y(z[1])}" width="${iw}" height="${Y(z[0])-Y(z[1])}" fill="${z[2]}" opacity=".10"/>`;
+    s+=`<text x="${W-R+7}" y="${(Y(z[0])+Y(z[1]))/2+3}" fill="${z[2]}" style="font-family:var(--sans);font-size:9.5px">${z[3]}</text>`;});
+  [0,25,50,75,100].forEach(val=>{
+    s+=`<line class="gridline" x1="${L}" y1="${Y(val)}" x2="${W-R}" y2="${Y(val)}"/>`;
+    s+=`<text class="axlbl" x="${L-8}" y="${Y(val)+3}" text-anchor="end">${val}</text>`;});
+  s+=`<text class="axlbl" x="${L-30}" y="${Tp+ih/2}" text-anchor="middle" transform="rotate(-90 ${L-30} ${Tp+ih/2})">Score</text>`;
+  for(let g=0;g<=5;g++){const val=v.min+(v.max-v.min)*g/5;
+    s+=`<text class="axlbl" x="${X(val)}" y="${Tp+ih+16}" text-anchor="middle">${k==='fat'?val.toFixed(1):Math.round(val)}</text>`;}
+  s+=`<text class="axlbl" x="${L+iw/2}" y="${H-14}" text-anchor="middle">${v.label}${v.unit?' ('+v.unit+')':''}</text>`;
+
+  // threshold guides, so the steps are readable as declared break points
+  if(k!=='qty') (VARS[k].breaks||[]).forEach(b=>{
+    if(b<=v.min||b>=v.max) return;
+    s+=`<line x1="${X(b)}" y1="${Tp}" x2="${X(b)}" y2="${Tp+ih}" stroke="#C7D0DC" stroke-width="1" stroke-dasharray="2 4"/>`;});
+
+  let d='';
+  pts.forEach((q,i)=>{ d+=(i?' L ':'M ')+X(q.x)+' '+Y(q.s); });
+  s+=`<path d="${d}" fill="none" stroke="#1F6091" stroke-width="2.5" stroke-linejoin="round"/>`;
+  s+=`<line x1="${X(curVal)}" y1="${Tp}" x2="${X(curVal)}" y2="${Tp+ih}" stroke="#A3650F" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  s+=`<circle cx="${X(curVal)}" cy="${Y(curScore)}" r="5" fill="#A3650F" stroke="#FFFFFF" stroke-width="2"/>`;
+  s+=`<text x="${X(curVal)}" y="${Tp-4}" text-anchor="middle" fill="#A3650F" style="font-family:var(--sans);font-size:9.5px">This shipment</text>`;
+  $('sens').innerHTML=s;
+
+  const lo=Math.min(...pts.map(q=>q.s)), hi=Math.max(...pts.map(q=>q.s));
+  const others=['delay','temp','fat'].filter(n=>n!==k&&inp.unk[n]);
+  $('snote').innerHTML=`<b>Across its full range, ${v.label.toLowerCase()} moves this consignment between ${lo} and ${hi}.</b> `
+   +(k==='qty'
+     ? 'Quantity enters through the severity weighting, which is an assumed form, so this shows a supposed relationship rather than a measured one.'
+     : `The dotted verticals are the declared thresholds at ${VARS[k].breaks.join(', ')}${v.unit?' '+v.unit:''}. Flat stretches between them are where the model treats values as equivalent.`)
+   +(others.length?` ${others.length} other condition${others.length>1?'s are':' is'} unreported, so ${others.length>1?'they leave':'it leaves'} the score unchanged throughout this sweep.`:'');
+}
+/* ---------- scenario explorer: operational events applied in sequence ---------- */
+const EVENTS={
+ dep90:  {t:"Departure delayed 90 min",  s:"ATC flow restriction",        k:"Delay +90m",  i:"⏱", d:{delay:+90}},
+ hold2:  {t:"Further 2 h on stand",      s:"slot missed, aircraft waits", k:"Delay +2h",   i:"⏱", d:{delay:+120}},
+ heat:   {t:"Heatwave at origin",        s:"ramp temperature +8 °C",      k:"Heat +8°",    i:"🌡", d:{temp:+8}},
+ sun:    {t:"Pallet left in direct sun", s:"ramp temperature +5 °C",      k:"Sun +5°",     i:"☀", d:{temp:+5}},
+ swap:   {t:"Aircraft swap",             s:"offload and reload, +3 h",    k:"Swap +3h",    i:"✈", d:{delay:+180, fat:+0.10}},
+ night:  {t:"Night shift handover",      s:"circadian low, fatigue +0.25",k:"Handover",    i:"🌙", d:{fat:+0.25}},
+ doubles:{t:"Handler on a double shift", s:"fatigue +0.15",               k:"Double shift",i:"🌙", d:{fat:+0.15}},
+ cool:   {t:"Moved to climate hold",     s:"ramp temperature −12 °C",     k:"Climate hold",i:"❄", d:{temp:-12}},
+ crew:   {t:"Fresh crew takes over",     s:"fatigue −0.20",               k:"Fresh crew",  i:"✓", d:{fat:-0.20}},
+ fast:   {t:"Cleared for immediate load",s:"delay −45 min",               k:"Fast load",   i:"✓", d:{delay:-45}}
+};
+const CHAINS={
+ weather: ["heat","dep90","hold2"],
+ swap:    ["swap","doubles"],
+ night:   ["dep90","night","sun"],
+ recover: ["heat","dep90","cool","crew"]
+};
+let CHAIN=[], CHAINCOND=null;
+
+function baseConds(){
+  return {temp:34, delay:0, fat:0.35};
+}
+
+function chain(k){
+  if(k==='clear') CHAIN=[]; else CHAIN=[...CHAINS[k]];
+  ['weather','swap','night','recover'].forEach(n=>{
+    const b=$('c-'+n); if(b) b.setAttribute('aria-pressed', n===k);
+  });
+  renderChain();
+}
+function addEvent(k){ CHAIN.push(k); renderChain(); }
+function popEvent(){ CHAIN.pop(); renderChain(); }
+
+function renderChain(){
+  const inp=inputs();
+  // Start from the shipment exactly as entered on tab 1, ground delay
+  // included. Resetting delay to zero would put the first point on a
+  // different timeline from the reference line and from the rest of the tool.
+  const c={temp:inp.raw.temp, delay:inp.raw.delay, fat:inp.raw.fat};
+
+  const seq=[], mk=cc=>{
+    const t=JSON.parse(JSON.stringify(inp));
+    t.raw={delay:Math.max(0,cc.delay),temp:cc.temp,fat:Math.min(1,Math.max(0,cc.fat))};
+    t.unk={delay:false,temp:false,fat:false};
+    return compute(t);
+  };
+  let r=mk(c);
+  seq.push({name:"This shipment", short:"As entered", cond:{...c}, idx:r.idx, band:bandOf(r.idx)});
+
+  CHAIN.forEach(k=>{
+    const e=EVENTS[k];
+    Object.entries(e.d).forEach(([f,v])=>{ c[f]=(f==='fat')?Math.min(1,Math.max(0,c[f]+v)):Math.max(0,c[f]+v); });
+    r=mk(c);
+    seq.push({name:e.t, short:e.k, cond:{...c}, idx:r.idx, band:bandOf(r.idx)});
+  });
+
+  $('evcount').textContent=CHAIN.length+' event'+(CHAIN.length===1?'':'s');
+
+  $('evbank').innerHTML=Object.entries(EVENTS).map(([k,e])=>
+    `<button onclick="addEvent('${k}')"><span class="gi">${e.i}</span><span>${e.t}<i>${e.s}</i></span></button>`).join('')
+    +(CHAIN.length?`<button onclick="popEvent()" style="border-color:var(--line);color:var(--ink3)"><span class="gi">↺</span><span>Undo last event<i>remove the most recent</i></span></button>`:'');
+
+  CHAINCOND={...c};
+  const last=seq[seq.length-1], first=seq[0];
+  const s0=toScore(first.idx), s1=toScore(last.idx), d=s1-s0;
+  const crossings=seq.filter((x,i)=>i>0&&x.band[0]!==seq[i-1].band[0]).length;
+
+  $('evhead').innerHTML=`
+    <div class="evh"><span class="k">THIS SHIPMENT NOW</span>
+      <span class="v" style="color:${first.band[2]}">${s0}</span>
+      <span class="b" style="color:${first.band[2]}">${first.band[0]}</span></div>
+    <div class="evarrow">→</div>
+    <div class="evh"><span class="k">AFTER ${CHAIN.length} EVENT${CHAIN.length===1?'':'S'}</span>
+      <span class="v" style="color:${last.band[2]}">${s1}</span>
+      <span class="b" style="color:${last.band[2]}">${last.band[0]}</span></div>
+    <div class="evdelta"><div class="n" style="color:${d>0?'var(--red)':(d<0?'var(--green)':'var(--ink3)')}">${d>0?'Risk increased':(d<0?'Risk reduced':'No change')}</div>
+      <div class="w">${crossings?'crossed '+crossings+' band'+(crossings===1?'':'s')+' · ':''}same consignment, conditions as they developed</div></div>`;
+
+  const nowScore=toScore(compute(inputs()).idx);
+  evChart(seq, nowScore);
+
+  $('evnote').innerHTML = CHAIN.length===0
+   ? `<b>No events yet.</b> The consignment sits where tab 1 put it. Load one of the chains above, or add events individually — each is an ordinary ground occurrence, not an unusual failure.`
+   : `<b>Risk ${d>0?'increased':(d<0?'reduced':'unchanged')} across ${CHAIN.length} event${CHAIN.length>1?'s':''}${crossings?', crossing '+crossings+' band'+(crossings===1?'':'s'):''}.</b>
+      None of these events is a compliance failure — the consignment stays correctly declared and packed throughout.`;
+
+}
+
+function evChart(seq, nowScore){
+  const W=900,H=330,L=54,R=58,Tp=34,B=84, iw=W-L-R, ih=H-Tp-B;
+  const n=seq.length, slot=n>1?iw/(n-1):0;
+  const y=v=>Tp+ih-ih*Math.min(v,100)/100;
+  const cx=i=>n>1?L+slot*i:L+iw/2;
+  let s='';
+
+  [[0,40,'#2F7D5C','Low'],[40,65,'#1F6091','Moderate'],[65,85,'#A3650F','Elevated'],[85,100,'#C0392B','High']]
+   .forEach(z=>{
+    s+=`<rect x="${L}" y="${y(z[1])}" width="${iw}" height="${y(z[0])-y(z[1])}" fill="${z[2]}" opacity=".10"/>`;
+    s+=`<text x="${W-R+7}" y="${(y(z[0])+y(z[1]))/2+3}" fill="${z[2]}" style="font-family:var(--sans);font-size:9.5px">${z[3]}</text>`;});
+  [0,25,50,75,100].forEach(v=>{
+    s+=`<line class="gridline" x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}"/>`;
+    s+=`<text class="axlbl" x="${L-9}" y="${y(v)+3}" text-anchor="end">${v}</text>`;});
+  s+=`<text class="axlbl" x="${L-32}" y="${Tp+ih/2}" text-anchor="middle" transform="rotate(-90 ${L-32} ${Tp+ih/2})">Score</text>`;
+
+  // where this shipment sits right now on the first tab
+  if(nowScore!=null){
+    s+=`<line x1="${L}" y1="${y(nowScore)}" x2="${W-R}" y2="${y(nowScore)}" stroke="#1F6091" stroke-width="1.5" stroke-dasharray="6 4" opacity=".8"/>`;
+    s+=`<text x="${W-R-4}" y="${y(nowScore)-7}" text-anchor="end" fill="#1F6091" style="font-family:var(--sans);font-size:9.5px">Starting point — ${nowScore}</text>`;
+  }
+  const yc=y(3);
+  s+=`<line x1="${L}" y1="${yc}" x2="${W-R}" y2="${yc}" stroke="#2F7D5C" stroke-width="2" stroke-dasharray="5 4"/>`;
+  s+=`<text x="${L+8}" y="${yc-7}" fill="#2F7D5C" style="font-family:var(--sans);font-size:9.5px">OneReg verdict: COMPLIANT — unchanged throughout</text>`;
+
+  const pts=seq.map((p,i)=>({x:cx(i), y:y(toScore(p.idx)), sc:toScore(p.idx), p}));
+
+  // filled area under the trajectory, so the rise reads at a glance
+  if(n>1){
+    let a=`M ${pts[0].x} ${Tp+ih} `;
+    pts.forEach(q=>a+=`L ${q.x} ${q.y} `);
+    a+=`L ${pts[n-1].x} ${Tp+ih} Z`;
+    s+=`<path d="${a}" fill="#A3650F" opacity=".10"/>`;
+  }
+  let d='';
+  pts.forEach((q,i)=>{ d+=(i?' L ':'M ')+q.x+' '+q.y; });
+  s+=`<path d="${d}" fill="none" stroke="#A3650F" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+  pts.forEach((q,i)=>{
+    const chg=i>0&&q.p.band[0]!==seq[i-1].band[0];
+    s+=`<circle cx="${q.x}" cy="${q.y}" r="${chg?5.5:4}" fill="${chg?q.p.band[2]:'#A3650F'}" stroke="#FFFFFF" stroke-width="2"/>`;
+    if(chg) s+=`<text x="${q.x}" y="${q.y-14}" text-anchor="middle" fill="${q.p.band[2]}" style="font-family:var(--sans);font-size:9.5px">Now ${q.p.band[0].toLowerCase()}</text>`;
+    const ly=Tp+ih+18;
+    s+=`<text x="${q.x}" y="${ly}" text-anchor="middle" fill="${i===0?'#3B4757':'#111C2B'}" style="font-family:var(--sans);font-size:10px">${q.p.short}</text>`;
+    s+=`<text x="${q.x}" y="${ly+13}" text-anchor="middle" fill="#47525F" style="font-family:var(--mono);font-size:9.5px">${Math.round(q.p.cond.temp)}° · ${Math.round(q.p.cond.delay)}m</text>`;
+  });
+
+  s+=`<rect x="${L+10}" y="${Tp-26}" width="11" height="2.5" rx="1" fill="#A3650F"/>`;
+  s+=`<text x="${L+26}" y="${Tp-22}" fill="#3B4757" style="font-family:var(--sans);font-size:9.5px">Scenario</text>`;
+  if(nowScore!=null){
+    s+=`<rect x="${L+92}" y="${Tp-26}" width="11" height="2.5" rx="1" fill="#1F6091"/>`;
+    s+=`<text x="${L+108}" y="${Tp-22}" fill="#3B4757" style="font-family:var(--sans);font-size:9.5px">Starting point</text>`;
+  }
+  s+=`<text x="${L}" y="${H-6}" fill="#47525F" style="font-family:var(--sans);font-size:9px">`
+   +`Direction and ordering are supported by published findings. The size of each move is an elicited estimate, not a measured effect.</text>`;
+  $('evchart').innerHTML=s;
+}
+function toggleSens(){
+  const w=$('senswrap'), b=$('sensbtn');
+  const open=w.style.display==='none';
+  w.style.display=open?'':'none';
+  b.setAttribute('aria-expanded',open);
+  if(open){ tornado(); sweep(sweepVar); }
+}
+
+function toggleTech(){
+  const w=$('techwrap'), b=$('discbtn');
+  const open=w.style.display==='none';
+  w.style.display=open?'':'none';
+  b.setAttribute('aria-expanded',open);
+  b.innerHTML=`<span class="car">▸</span>Technical detail — case matching and calibration sources`;
+}
+
+function tab(n){
+  [1,2,3,4].forEach(i=>{
+    $('pg'+i).classList.toggle('on',n===i);
+    $('t'+i).setAttribute('aria-selected',n===i);
+  });
+  if(n===2){ tornado(); sweep(sweepVar); renderChain(); }
+  if(n===4) initOperator();
+}
+
+/* ---------- ingestion: same canonical field alternatives as the Python column map ---------- */
+const COLMAP={
+ shipment_id:["Shipment ID","shipment_id","ShipmentID"],
+ dg_class:["DG Class","dg_class"],
+ packing_group:["Packing Group","packing_group"],
+ net_quantity:["Net Quantity / Weight","net_quantity"],
+ departure_delay_min:["Departure Delay (min)","delay_minutes"],
+ sched_departure:["Scheduled Departure","sched_departure_utc"],
+ actual_departure:["Actual Departure","actual_departure_utc"],
+ ramp_temp_c:["Ramp Temperature (C)","temp_exceedance_c","ramp_temp_c"],
+ fatigue_proxy:["Fatigue Proxy","fatigue_proxy"]
+};
+let ROWS=[], SCORED=[], COLS=[], CURFILE='';
+
+['dragover','dragleave','drop'].forEach(ev=>{
+  document.addEventListener('DOMContentLoaded',()=>{
+    const d=$('drop'); if(!d) return;
+    d.addEventListener(ev,e=>{
+      e.preventDefault();
+      d.classList.toggle('over',ev==='dragover');
+      if(ev==='drop'&&e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+  });
+});
+
+function pick(row,alts){ for(const a of alts) if(a in row && row[a]!==null && row[a]!=='') return row[a]; return undefined; }
+
+function loadFile(f){
+  if(!f) return;
+  const rd=new FileReader();
+  rd.onload=e=>{
+    let wb;
+    try{ wb=XLSX.read(e.target.result,{type:'array',cellDates:true}); }
+    catch(err){ $('loadinfo').innerHTML=`<div class="note red"><b>Could not read that file.</b> ${err.message}</div>`; return; }
+    const sheet=wb.SheetNames.find(s=>/shipment/i.test(s))||wb.SheetNames[0];
+    ROWS=XLSX.utils.sheet_to_json(wb.Sheets[sheet],{defval:null});
+    if(!ROWS.length){ $('loadinfo').innerHTML=`<div class="note red"><b>That sheet is empty.</b></div>`; return; }
+    COLS=Object.keys(ROWS[0]); CURFILE=f.name;
+    const found=[],absent=[];
+    Object.entries(COLMAP).forEach(([k,alts])=>{ (alts.some(a=>COLS.includes(a))?found:absent).push(k); });
+    $('loadinfo').innerHTML=`<div class="note"><b>${ROWS.length.toLocaleString()} rows from ${f.name}, sheet "${sheet}".</b>
+      Matched ${found.length} canonical fields: ${found.join(', ')}.
+      ${absent.length?`Absent: ${absent.join(', ')} — these contribute a likelihood ratio of 1.0, so those rows fall back toward the prior rather than failing.`:''}</div>`;
+    const numeric=COLS.filter(c=>{
+      const v=ROWS.slice(0,80).map(r=>r[c]).filter(x=>x!==null&&x!=='');
+      return v.length>5 && v.filter(x=>!isNaN(+x)).length/v.length>0.8;
+    });
+    $('newcol').innerHTML='<option value="">— choose a column —</option>'+numeric.map(c=>`<option>${c}</option>`).join('');
+    $('newcol').value=''; colPicked();
+    scoreBatch();
+    fillPicker();
+  };
+  rd.readAsArrayBuffer(f);
+}
+
+function rowToInput(r){
+  let delay=pick(r,COLMAP.departure_delay_min);
+  if(delay===undefined){
+    const a=pick(r,COLMAP.actual_departure), s=pick(r,COLMAP.sched_departure);
+    if(a&&s) delay=(new Date(a)-new Date(s))/60000;
+  }
+  const temp=pick(r,COLMAP.ramp_temp_c), fat=pick(r,COLMAP.fatigue_proxy);
+  let cls=String(pick(r,COLMAP.dg_class)??'').trim();
+  if(cls.endsWith('.0')) cls=cls.slice(0,-2);
+  const pg=String(pick(r,COLMAP.packing_group)??'NA').trim().toUpperCase();
+  return {
+    cls: (cls in CFG.inc)?cls:null,
+    pg: ['I','II','III'].includes(pg)?pg:'NA',
+    qty: +(pick(r,COLMAP.net_quantity)??0)||0,
+    raw:{delay:+delay||0,temp:+temp||0,fat:+fat||0},
+    unk:{delay:delay===undefined||delay===null,temp:temp===undefined||temp===null,fat:fat===undefined||fat===null},
+    extra:r,
+    id: pick(r,COLMAP.shipment_id)??'—'
+  };
+}
+
+function scoreBatch(){
+  if(!ROWS.length) return;
+  SCORED=ROWS.map(r=>{
+    const inp=rowToInput(r);
+    if(!inp.cls) return null;
+    const res=compute(inp);
+    return {id:inp.id,cls:inp.cls,delay:inp.unk.delay?null:inp.raw.delay,
+            prior:Math.min(0.99,res.prior*res.sev)/CFG.nominal,
+            idx:res.idx,band:bandOf(res.idx)[0],colour:bandOf(res.idx)[2]};
+  }).filter(Boolean);
+
+  $('batchcard').style.display='';
+  $('batchn').textContent=SCORED.length.toLocaleString()+' scored';
+
+  const counts={};
+  SCORE_BANDS.forEach(b=>counts[b[0]]=0);
+  SCORED.forEach(s=>counts[s.band]++);
+  $('banddist').innerHTML=SCORE_BANDS.map(b=>{
+    const n=counts[b[0]]||0, pct=SCORED.length?100*n/SCORED.length:0;
+    return `<div class="bar"><span class="lbl" style="color:${b[2]}">${b[0]}</span>`
+      +`<span class="track"><span class="fill" style="width:${pct.toFixed(1)}%;background:${b[2]}"></span></span>`
+      +`<span class="num">${pct.toFixed(1)}%</span>`
+      +`<span class="cnt2">${n.toLocaleString()}</span></div>`;
+  }).join('');
+
+  const idxs=SCORED.map(s=>s.idx).sort((a,b)=>a-b);
+  const med=idxs[Math.floor(idxs.length/2)], p95=idxs[Math.floor(idxs.length*0.95)];
+  const nUnobs=SCORED.filter(s=>s.delay===null).length;
+  $('batchnote').innerHTML=`<b>Median score ${toScore(med)}, 95th percentile ${toScore(p95)}, highest ${toScore(idxs[idxs.length-1])}.</b>
+    ${nUnobs?`${nUnobs.toLocaleString()} rows carry no delay value and were scored on whatever else was present.`:''}
+    Most exports carry no temperature or fatigue field, so the spread across this file is driven mainly by DG class and reported delay.`;
+
+  histogram(idxs);
+
+  $('toptab').innerHTML=[...SCORED].sort((a,b)=>b.idx-a.idx).slice(0,15).map(s=>
+    `<tr><td>${s.id}</td><td>Class ${s.cls}</td><td class="n">${s.delay===null?'—':Math.round(s.delay)}</td><td class="n">${toScore(s.prior)}</td><td class="n" style="color:${s.colour}">${toScore(s.idx)}</td><td style="color:${s.colour}">${s.band}</td></tr>`).join('');
+}
+
+function histogram(sorted){
+  const W=440,H=220,L=34,R=10,Tp=12,B=32, iw=W-L-R, ih=H-Tp-B;
+  const max=Math.max(...sorted), NB=26, bins=new Array(NB).fill(0);
+  sorted.forEach(v=>bins[Math.min(NB-1,Math.floor(NB*v/max))]++);
+  const bm=Math.max(...bins);
+  let s='';
+  for(let g=0;g<=3;g++){const y=Tp+ih-ih*g/3;
+    s+=`<line class="gridline" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/>`;
+    s+=`<text class="axlbl" x="${L-6}" y="${y+3}" text-anchor="end">${Math.round(bm*g/3)}</text>`;}
+  bins.forEach((n,i)=>{
+    const bw=iw/NB, x=L+i*bw, h=ih*n/bm, v=max*(i+0.5)/NB;
+    s+=`<rect class="bars2" x="${x+0.8}" y="${Tp+ih-h}" width="${bw-1.6}" height="${h}" fill="${bandOf(v)[2]}" opacity=".8"/>`;});
+  for(let g=0;g<=4;g++){const v=max*g/4;
+    s+=`<text class="axlbl" x="${L+iw*g/4}" y="${Tp+ih+15}" text-anchor="middle">${v.toFixed(1)}</text>`;}
+  s+=`<text class="axlbl" x="${L+iw/2}" y="${H-4}" text-anchor="middle">Risk score across the loaded file</text>`;
+  $('hist').innerHTML=s;
+}
+
+function exportCSV(){
+  const head='shipment_id,dg_class,departure_delay_min,risk_score,risk_index,risk_band\n';
+  const body=SCORED.map(s=>[s.id,s.cls,s.delay??'',toScore(s.idx),s.idx.toFixed(4),s.band].join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([head+body],{type:'text/csv'}));
+  a.download='onereg_scored.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- guided variable declaration ---------- */
+const DIRS=[
+ ["much lower risk",0.35],["lower risk",0.65],["no effect",1.00],
+ ["higher risk",1.60],["much higher risk",2.80]
+];
+let MODE='judge', COLVALS=[];
+
+function quantile(a,q){ if(!a.length) return null; const i=(a.length-1)*q, lo=Math.floor(i), hi=Math.ceil(i);
+  return a[lo]+(a[hi]-a[lo])*(i-lo); }
+
+function colPicked(){
+  const col=$('newcol').value;
+  if(!col){ $('w2').style.display='none'; $('w3').style.display='none';
+            $('colstats').innerHTML=''; $('indep').innerHTML=''; return; }
+  COLVALS=ROWS.map(r=>+r[col]).filter(v=>!isNaN(v)&&v!==null).sort((a,b)=>a-b);
+  if(COLVALS.length<10){ $('colstats').innerHTML=`<div class="note red"><b>Only ${COLVALS.length} numeric values in that column.</b> Too few to band sensibly.</div>`;
+    $('w2').style.display='none'; $('w3').style.display='none'; return; }
+  const q=[.25,.5,.75].map(x=>quantile(COLVALS,x));
+  const rnd=v=>Math.abs(v)>=10?Math.round(v):+v.toFixed(2);
+  $('colstats').innerHTML=`<div class="stats">
+    <div>min<b>${rnd(COLVALS[0])}</b></div><div>25th<b>${rnd(q[0])}</b></div>
+    <div>median<b>${rnd(q[1])}</b></div><div>75th<b>${rnd(q[2])}</b></div>
+    <div>max<b>${rnd(COLVALS[COLVALS.length-1])}</b></div>
+    <div>values<b>${COLVALS.length.toLocaleString()}</b></div></div>`;
+
+  // If a large share of values sit at the floor (very common for lapse or
+  // count columns), quartiles collapse: the bottom band swallows everything
+  // and the rest are cut at meaningless points. Offer a zero-split instead.
+  const floorVal=COLVALS[0];
+  const atFloor=COLVALS.filter(v=>v===floorVal).length/COLVALS.length;
+  const nz=COLVALS.filter(v=>v>floorVal);
+  const chips=[];
+  let dflt;
+  if(atFloor>0.30 && nz.length>40){
+    const nq=[.33,.66].map(x=>rnd(quantile(nz,x)));
+    chips.push([`${(atFloor*100).toFixed(0)}% sit at ${rnd(floorVal)} — split there first`,[rnd(floorVal),...nq]]);
+    chips.push([`At ${rnd(floorVal)} only (2 bands)`,[rnd(floorVal)]]);
+    dflt=[rnd(floorVal),...nq];
+    $('colstats').innerHTML+=`<div class="cnt" style="color:#A3650F">${(atFloor*100).toFixed(0)}% of values are ${rnd(floorVal)}, so even quartiles would put most rows in one band. A split at ${rnd(floorVal)} is suggested instead.</div>`;
+  } else {
+    dflt=[q[0],q[1],q[2]].map(rnd);
+  }
+  chips.push(['Quartiles (4 bands split evenly)',[q[0],q[1],q[2]].map(rnd)]);
+  chips.push(['Median only (2 bands)',[rnd(q[1])]]);
+  chips.push(['Top quarter only (2 bands)',[rnd(q[2])]]);
+  $('breakchips').innerHTML=chips.map(o=>`<button onclick="setBreaks('${o[1].join(', ')}')">${o[0]}</button>`).join('');
+
+  $('newbreaks').value=dflt.join(', ');
+  $('w2').style.display=''; $('w3').style.display='';
+  renderIndependence(col);
+
+  const bin=ROWS.filter(r=>{
+    const v=r[col]; return v!==null&&v!==''&&!isNaN(+v);
+  }).length;
+  const outCands=COLS.filter(c=>{
+    const vals=[...new Set(ROWS.map(r=>String(r[c]).toLowerCase().trim()))].filter(v=>v!=='null'&&v!=='');
+    return vals.length===2 && vals.every(v=>['0','1','yes','no','true','false'].includes(v));
+  });
+  $('outcol').innerHTML='<option value="">— choose —</option>'+outCands.map(c=>`<option>${c}</option>`).join('')
+    +(outCands.length?'':'<option value="" disabled>no binary outcome column found in this file</option>');
+  syncLRs();
+}
+
+function setBreaks(s){ $('newbreaks').value=s; syncLRs(); if(MODE==='fit') runFit(); }
+
+/* Independence check.
+   Sequential odds multiplication assumes each stream carries its own
+   information. A declared variable that correlates with one already in the
+   chain partly re-expresses it, and the posterior inflates - the same
+   double-counting failure the model was corrected for earlier. This does not
+   block the user; it tells them what they are doing. */
+function corrWith(colA, colB){
+  const xs=[], ys=[];
+  ROWS.forEach(r=>{
+    const a=+r[colA], b=+r[colB];
+    if(r[colA]!==null&&r[colB]!==null&&!isNaN(a)&&!isNaN(b)){ xs.push(a); ys.push(b); }
+  });
+  const n=xs.length;
+  if(n<20) return null;
+  const mx=xs.reduce((s,v)=>s+v,0)/n, my=ys.reduce((s,v)=>s+v,0)/n;
+  let sxy=0,sxx=0,syy=0;
+  for(let i=0;i<n;i++){ const dx=xs[i]-mx, dy=ys[i]-my; sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy; }
+  if(sxx===0||syy===0) return null;
+  return {r:sxy/Math.sqrt(sxx*syy), n};
+}
+
+function independenceCheck(col){
+  const streams=[];
+  const findCol=alts=>alts.find(a=>COLS.includes(a));
+  const builtins=[['Ground delay',COLMAP.departure_delay_min],
+                  ['Ramp temperature',COLMAP.ramp_temp_c],
+                  ['Handler fatigue',COLMAP.fatigue_proxy]];
+
+  // Is this column already wired into the model as a built-in stream?
+  // If so it is not a candidate at all - it is the stream itself, and
+  // declaring it would apply the same likelihood ratio twice.
+  const self=builtins.find(([,alts])=>findCol(alts)===col);
+  if(self) return {selfStream:self[0], rows:[]};
+  const dup=CUSTOM.find(cv=>cv.col===col);
+  if(dup) return {selfStream:'a variable you already added ('+col+')', rows:[]};
+
+  builtins.forEach(([label,alts])=>{ const c=findCol(alts); if(c) streams.push([label,c]); });
+  CUSTOM.forEach(cv=>{ if(COLS.includes(cv.col)) streams.push([cv.col,cv.col]); });
+
+  const rows=[];
+  streams.forEach(([label,c])=>{ const s=corrWith(col,c); if(s) rows.push({label,...s}); });
+  return {selfStream:null, rows};
+}
+
+function renderIndependence(col){
+  const res=independenceCheck(col);
+
+  if(res.selfStream){
+    $('indep').innerHTML=`<div class="note red" style="margin-top:9px">
+      <b>This column is already ${res.selfStream} in the model.</b>
+      Declaring it would apply the same likelihood ratio twice to every shipment,
+      which is the double-counting failure sequential updating is most vulnerable to.
+      To change how this stream behaves, edit its response curve in the configuration
+      rather than adding a second copy of it.</div>`;
+    return 3;
+  }
+
+  if(!res.rows.length){ $('indep').innerHTML=''; return 0; }
+  const worst=Math.max(...res.rows.map(x=>Math.abs(x.r)));
+  const level = worst>=0.4 ? 2 : (worst>=0.2 ? 1 : 0);
+  const list=res.rows.map(x=>{
+    const a=Math.abs(x.r);
+    const col2 = a>=0.4?'#C0392B':(a>=0.2?'#A3650F':'#63748F');
+    return `<span style="font-family:var(--mono);font-size:10.5px;color:${col2}">${x.label} r=${x.r>=0?'+':''}${x.r.toFixed(2)}</span>`;
+  }).join(' · ');
+
+  const msg = level===2
+   ? `<b>Strong overlap with a stream already in the model.</b> Sequential updating assumes each stream carries its own information. At this level the new variable largely repeats one already in the chain, so adding it would count the same signal twice and inflate the posterior. Either drop it, or replace the stream it duplicates rather than adding alongside it.`
+   : level===1
+   ? `<b>Moderate overlap with an existing stream.</b> Part of what this variable measures is already in the chain. It may also be a confounded proxy: a variable derived from an existing stream can fit to a convincing curve while carrying no information of its own. Defensible if you say so in the write-up; not if you don't.`
+   : `<b>Independent of the streams already in the model.</b> Its likelihood ratios will contribute information the chain does not already hold, which is what sequential odds multiplication assumes.`;
+
+  $('indep').innerHTML=`<div class="note${level===2?' red':''}" style="margin-top:9px">${msg}<br><br>${list}</div>`;
+  return level;
+}
+function setMode(m){
+  MODE=m;
+  $('m-judge').setAttribute('aria-pressed',m==='judge');
+  $('m-fit').setAttribute('aria-pressed',m==='fit');
+  $('fitpick').style.display = m==='fit'?'':'none';
+  $('w3help').textContent = m==='fit'
+   ? 'Likelihood ratios are computed from the data: each band\u2019s event rate against the overall rate, shrunk toward the overall rate by partial pooling so thin bands cannot produce wild values.'
+   : 'Pick a direction in plain language and the likelihood ratio is filled in for you. 1.00 means the band tells you nothing.';
+  syncLRs();
+  if(m==='fit') runFit();
+}
+
+function currentBreaks(){
+  return $('newbreaks').value.split(',').map(s=>+s.trim()).filter(s=>!isNaN(s)).sort((a,b)=>a-b);
+}
+function bandLabels(br){
+  const n=br.length+1, out=[];
+  for(let i=0;i<n;i++) out.push(i===0?`≤ ${br[0]}`:(i===n-1?`> ${br[n-2]}`:`${br[i-1]} – ${br[i]}`));
+  return out;
+}
+
+function syncLRs(){
+  const br=currentBreaks();
+  if(!br.length){ $('lrinputs').innerHTML='<div class="cnt">Enter at least one break point.</div>'; return; }
+  const labels=bandLabels(br), col=$('newcol').value;
+
+  // how many loaded rows land in each band
+  const counts=new Array(br.length+1).fill(0);
+  COLVALS.forEach(v=>{ let i=0; for(const b of br){ if(v>b) i++; else break; } counts[i]++; });
+  $('bandcounts').innerHTML='<div class="cnt">'+labels.map((l,i)=>
+    `${l}: ${counts[i].toLocaleString()} rows (${(100*counts[i]/COLVALS.length).toFixed(0)}%)`).join(' · ')+'</div>';
+
+  const prev=window.__lrvals||[];
+  $('lrinputs').innerHTML=labels.map((l,i)=>{
+    const cur=prev[i]??1.0;
+    const opts=DIRS.map(d=>`<option value="${d[1]}" ${Math.abs(d[1]-cur)<0.01?'selected':''}>${d[0]}</option>`).join('');
+    const cls=cur>1.001?'up':(cur<0.999?'dn':'flat');
+    return `<div class="lrrow2"><span class="bd">${l}</span>
+      <select id="dir${i}" onchange="onDir()" ${MODE==='fit'?'disabled':''}>${opts}</select>
+      <span class="lrv ${cls}" id="lrv${i}">${(+cur).toFixed(2)}×</span></div>`;
+  }).join('');
+  if(!window.__lrvals||window.__lrvals.length!==labels.length){
+    window.__lrvals=new Array(labels.length).fill(1.0); onDir();
+  } else lrPreview();
+}
+
+function onDir(){
+  const br=currentBreaks(), n=br.length+1, vals=[];
+  for(let i=0;i<n;i++){
+    const el=$('dir'+i); const v=el?+el.value:1.0; vals.push(v);
+    const s=$('lrv'+i); if(s){ s.textContent=v.toFixed(2)+'×'; s.className='lrv '+(v>1.001?'up':(v<0.999?'dn':'flat')); }
+  }
+  window.__lrvals=vals; window.__lrci=null; lrPreview();
+}
+
+/* Wilson score interval — behaves sensibly at small n and near 0 or 1,
+   unlike the normal approximation. */
+function wilson(k,n,z){
+  if(!n) return [0,1];
+  z=z||1.96;
+  const p=k/n, d=1+z*z/n;
+  const c=(p+z*z/(2*n))/d;
+  const h=z*Math.sqrt(p*(1-p)/n + z*z/(4*n*n))/d;
+  return [Math.max(0,c-h), Math.min(1,c+h)];
+}
+const ODDS=p=>{ const q=Math.min(.98,Math.max(.002,p)); return q/(1-q); };
+
+function runFit(){
+  const oc=$('outcol').value, col=$('newcol').value, br=currentBreaks();
+  if(!oc||!col||!br.length){ $('fitinfo').innerHTML=''; return; }
+  const truthy=v=>['1','yes','true'].includes(String(v).toLowerCase().trim());
+  const rows=ROWS.filter(r=>r[col]!==null&&!isNaN(+r[col])&&r[oc]!==null&&r[oc]!=='');
+  const global=rows.filter(r=>truthy(r[oc])).length/rows.length;
+  const K=5, vals=[], lo=[], hi=[], detail=[], thin=[];
+  const labels=bandLabels(br);
+
+  for(let i=0;i<br.length+1;i++){
+    const inBand=rows.filter(r=>{ let j=0; for(const b of br){ if(+r[col]>b) j++; else break; } return j===i; });
+    const n=inBand.length, ev=inBand.filter(r=>truthy(r[oc])).length;
+    const rate=n?ev/n:global;
+
+    /* Shrink on effective events, not row count. A band of 50 rows holding
+       4 events is thin however many rows it has; row-based lambda would give
+       0.91 and let that noise through almost untouched. The limiting count is
+       whichever is scarcer, events or non-events. */
+    const eff=Math.min(ev,n-ev);
+    const lam=n?eff/(eff+K):0;
+    const shrunk=lam*rate+(1-lam)*global;
+    vals.push(+(ODDS(shrunk)/ODDS(global)).toFixed(2));
+
+    const ci=wilson(ev,n);
+    lo.push(+(ODDS(ci[0])/ODDS(global)).toFixed(2));
+    hi.push(+(ODDS(ci[1])/ODDS(global)).toFixed(2));
+
+    if(eff<10) thin.push(labels[i]);
+    detail.push(`${labels[i]}: n=${n}, events=${ev}, raw ${(rate*100).toFixed(1)}%, λ=${lam.toFixed(2)}, shrunk ${(shrunk*100).toFixed(1)}%`);
+  }
+  window.__lrvals=vals; window.__lrci={lo,hi};
+
+  for(let i=0;i<vals.length;i++){
+    const s=$('lrv'+i);
+    if(s){ s.textContent=vals[i].toFixed(2)+'×'; s.className='lrv '+(vals[i]>1.001?'up':(vals[i]<0.999?'dn':'flat')); }
+  }
+
+  // does the fitted direction reverse? for an ordered variable that is usually noise
+  const up=vals.every((v,i)=>i===0||v>=vals[i-1]-0.02);
+  const dn=vals.every((v,i)=>i===0||v<=vals[i-1]+0.02);
+  const zig=!(up||dn);
+  // does any interval straddle 1.0?
+  const straddle=vals.map((v,i)=>lo[i]<1&&hi[i]>1).filter(Boolean).length;
+
+  const warn=/complian/i.test(oc);
+  let flags='';
+  if(zig) flags+=`<br><br><b>The fitted direction reverses across the bands.</b> For an ordered variable the effect would normally move one way. A zigzag usually means the bands are reading noise rather than a relationship — check the band sizes below before using this.`;
+  if(thin.length) flags+=`<br><br><b>Thin band${thin.length>1?'s':''}: ${thin.join(', ')}.</b> Fewer than 10 events or non-events, so the estimate rests on a handful of records and one more or less would move it materially.`;
+  if(straddle) flags+=`<br><br><b>${straddle} of ${vals.length} bands have a confidence interval spanning 1.0</b>, meaning the data cannot distinguish them from having no effect at all.`;
+  if(warn) flags+=`<br><br><b>That outcome looks like a compliance field.</b> Kapp et al. (2020), analysing 274 thermal runaway incidents, found the majority occurred without prior non-compliance. A variable fitted on compliance predicts paperwork problems, not incidents, and is filed as assumed rather than fitted.`;
+
+  $('fitinfo').innerHTML=`<div class="note${(warn||zig)?' red':''}">
+    <b>Overall event rate ${(global*100).toFixed(2)}% across ${rows.length.toLocaleString()} rows.</b><br>
+    <span style="font-family:var(--mono);font-size:10.5px;line-height:1.8">${detail.join('<br>')}</span>${flags}</div>`;
+  lrPreview();
+}
+
+function lrPreview(){
+  const br=currentBreaks(), vals=window.__lrvals||[];
+  const ci=(MODE==='fit')?window.__lrci:null;
+  if(!br.length||!vals.length){ $('lrpreview').innerHTML=''; return; }
+  const W=400,H=130,L=34,R=10,Tp=10,B=26, iw=W-L-R, ih=H-Tp-B;
+  const ceil=ci?Math.max(...ci.hi.map(v=>Math.min(v,6))):Math.max(...vals);
+  const top=Math.max(3,Math.ceil(Math.max(ceil,...vals)*1.15));
+  const y=v=>Tp+ih-ih*Math.min(v,top)/top;
+  let s=`<line class="gridline" x1="${L}" y1="${y(1)}" x2="${W-R}" y2="${y(1)}" stroke="#63748F" stroke-dasharray="3 3"/>`;
+  s+=`<text class="axlbl" x="${L-6}" y="${y(1)+3}" text-anchor="end">1.0</text>`;
+  s+=`<text class="axlbl" x="${L-6}" y="${y(top)+8}" text-anchor="end">${top.toFixed(1)}</text>`;
+  const bw=iw/vals.length;
+  vals.forEach((v,i)=>{
+    const x=L+i*bw, h=Math.abs(y(v)-y(1));
+    const straddles=ci&&ci.lo[i]<1&&ci.hi[i]>1;
+    const col=straddles?'#63748F':(v>1.001?'#C0392B':(v<0.999?'#2F7D5C':'#63748F'));
+    s+=`<rect x="${x+2}" y="${v>=1?y(v):y(1)}" width="${bw-4}" height="${Math.max(1,h)}" fill="${col}" opacity="${straddles?'.35':'.8'}"/>`;
+    if(ci){
+      const cx=x+bw/2, yl=y(Math.min(ci.hi[i],top)), yh=y(Math.max(ci.lo[i],0));
+      s+=`<line x1="${cx}" y1="${yl}" x2="${cx}" y2="${yh}" stroke="#111C2B" stroke-width="1.2" opacity=".65"/>`;
+      s+=`<line x1="${cx-4}" y1="${yl}" x2="${cx+4}" y2="${yl}" stroke="#111C2B" stroke-width="1.2" opacity=".65"/>`;
+      s+=`<line x1="${cx-4}" y1="${yh}" x2="${cx+4}" y2="${yh}" stroke="#111C2B" stroke-width="1.2" opacity=".65"/>`;
+    }
+    s+=`<text class="axlbl" x="${x+bw/2}" y="${Tp+ih+14}" text-anchor="middle">${v.toFixed(2)}×</text>`;});
+  s+=`<text class="axlbl" x="${L+iw/2}" y="${H-2}" text-anchor="middle">${ci?'likelihood ratio with 95% interval':'likelihood ratio by band, low to high'}</text>`;
+  $('lrpreview').innerHTML=s;
+}
+
+/* Emit the declaration in the exact shape model_config.json expects, so a
+   variable explored here can be moved into the Python engine without
+   retyping numbers. Provenance travels with it: which file, which outcome
+   column, how many rows behind each band. */
+function exportDecl(){
+  const col=$('newcol').value, br=currentBreaks(), lr=window.__lrvals||[];
+  if(!col||!br.length){ $('addmsg').textContent='Choose a column and break points first.'; return; }
+  const slug=col.toLowerCase().replace(/\([^)]*\)/g,'').trim().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  const fitted = MODE==='fit' && $('outcol').value;
+  const comply = fitted && /complian/i.test($('outcol').value);
+
+  const counts=new Array(br.length+1).fill(0);
+  COLVALS.forEach(v=>{ let i=0; for(const b of br){ if(v>b) i++; else break; } counts[i]++; });
+
+  const ci=window.__lrci;
+  const notes=[];
+  notes.push(fitted?`Fitted on ${$('outcol').value}.`:'Set by judgement, not fitted to any outcome.');
+  notes.push(`Band row counts: ${counts.join(', ')}.`);
+  if(ci) notes.push(`95% intervals: ${lr.map((v,i)=>`${ci.lo[i]}-${ci.hi[i]}`).join(', ')}.`);
+  if(comply) notes.push('Outcome was a compliance field, which Kapp et al. (2020) show is a weak predictor of incidents; filed as placeholder rather than fitted.');
+
+  const obj={
+    name:slug, label:col, enabled:true, field:col, response:'step',
+    breaks:br, likelihood_ratios:lr, missing_lr:1.0,
+    calibration: comply?'placeholder':(fitted?'fitted_real':'placeholder'),
+    fitted_on: fitted?`${CURFILE||'uploaded file'}, n=${COLVALS.length}, outcome ${$('outcol').value}`:null,
+    notes: notes.join(' ')
+  };
+  const txt=JSON.stringify(obj,null,2);
+  const el=$('declout'); el.style.display=''; el.textContent=txt;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(
+      ()=>{ $('addmsg').textContent='Copied. Paste into the "variables" array in config/model_config.json.'; },
+      ()=>{ $('addmsg').textContent='Shown below — select and copy into config/model_config.json.'; });
+  } else $('addmsg').textContent='Shown below — select and copy into config/model_config.json.';
+}
+
+function addVar(){
+  const col=$('newcol').value, br=currentBreaks(), lr=window.__lrvals||[];
+  if(!col||!br.length){ $('addmsg').textContent='Choose a column and at least one break point.'; return; }
+  if(lr.every(v=>Math.abs(v-1)<0.01)){ $('addmsg').textContent='Every band is set to no effect, so this variable would do nothing.'; return; }
+  const lvl=renderIndependence(col);
+  if(lvl===3){ $('addmsg').textContent='That column is already a stream in the model — it cannot be added twice.'; return; }
+  if(lvl===2 && !confirm('This column correlates strongly with a stream already in the model. Adding it will count the same signal twice and inflate scores. Add anyway?')) return;
+  const cal = MODE==='fit' ? (/complian/i.test($('outcol').value)?'ph':'re') : 'ph';
+  const rnd=v=>Math.abs(v)>=10?Math.round(v):+v.toFixed(2);
+  const ov=independenceCheck(col).rows;
+  const worst=ov.length?Math.max(...ov.map(x=>Math.abs(x.r))):0;
+  CUSTOM.push({col,breaks:br,lr:[...lr],cal,overlap:worst,
+    min:rnd(COLVALS[0]), max:rnd(COLVALS[COLVALS.length-1]), med:rnd(quantile(COLVALS,0.5))});
+  renderCustomFields();
+  $('addmsg').textContent='Added. Look at page 1 — the odds chain is one row longer.';
+  renderVars(); scoreBatch(); draw();
+}
+function removeVar(i){ CUSTOM.splice(i,1); renderCustomFields(); renderVars(); scoreBatch(); draw(); }
+
+function renderVars(){
+  const names={ph:'assumed',el:'elicited',re:'fitted'};
+  const cols={ph:'#C0392B',el:'#A3650F',re:'#2F7D5C'};
+  const base=[['Ground delay','elicited'],['Ramp temperature','elicited'],['Handler fatigue','elicited']];
+  $('vartab').innerHTML=base.map(b=>
+    `<tr><td>${b[0]}<br><small style="color:var(--ink3);font-family:var(--mono);font-size:10px">built in</small></td><td class="n" style="color:#A3650F">${b[1]}</td><td class="n"></td></tr>`).join('')
+   +CUSTOM.map((c,i)=>`<tr><td>${c.col}<br><small style="color:var(--ink3);font-family:var(--mono);font-size:10px">breaks ${c.breaks.join(', ')} · LR ${c.lr.join(', ')}</small></td>
+     <td class="n" style="color:${cols[c.cal]}">${names[c.cal]}${
+       c.overlap>=0.4?'<br><span style="color:#C0392B;font-size:9.5px">overlaps r='+c.overlap.toFixed(2)+'</span>'
+       :(c.overlap>=0.2?'<br><span style="color:#A3650F;font-size:9.5px">overlaps r='+c.overlap.toFixed(2)+'</span>':'')}</td>
+     <td class="n"><button class="pillbtn" onclick="removeVar(${i})">remove</button></td></tr>`).join('');
+  $('varnote').innerHTML = CUSTOM.length
+   ? `<b>${CUSTOM.length} added variable${CUSTOM.length>1?'s':''} now in the odds chain.</b> Page 1's chain has grown by ${CUSTOM.length} row${CUSTOM.length>1?'s':''} and the posterior reflects ${CUSTOM.length>1?'them':'it'}. Nothing in the scoring engine changed — the variable was declared, not coded. A shipment with no value for that column contributes a likelihood ratio of 1.0 and is unaffected.`
+   : `<b>Three built-in evidence streams.</b> Load a file above and follow the three steps to add a fourth. The engine does not change; only the declaration does.`;
+}
+/* ---------- Operator view (tab 4) ----------
+   Same scoring, none of the arithmetic shown.. The scoring itself is unchanged -
+   this view simply does not show the arithmetic. */
+const OBANDS={
+ Routine:  {c:'#2F7D5C', lbl:'Routine'},
+ Monitor:  {c:'#1F6091', lbl:'Monitor'},
+ Act:      {c:'#A3650F', lbl:'Action needed'},
+ Hold:     {c:'#C0392B', lbl:'Hold'}
+};
+
+const OTASKS={
+ Routine:[['Accept and handle normally','No additional steps required for this consignment.']],
+ Monitor:[['Accept','Conditions are close to normal for this class.'],
+          ['Re-check if ground time extends','Another hour on stand would move this into action.']],
+ Act:[['Move out of direct sun or into a climate-controlled hold','Reduces the thermal load that is driving this consignment.'],
+      ['Re-inspect outer packaging and segregation','Confirm nothing has shifted or been damaged during the extended hold.'],
+      ['Prioritise for loading','Every further hour on the ground adds exposure.'],
+      ['Note the condition trail on the consignment record','So the receiving station knows what it has been through.']],
+ Hold:[['Do not load pending physical inspection','Conditions exceed what routine handling covers.'],
+       ['Inspect the consignment and photograph any damage','Check for swelling, discolouration, leakage or heat damage.'],
+       ['Notify the operator and the duty DG officer','They decide whether the consignment travels.'],
+       ['Consider offload or reroute','If exposure cannot be reduced, this consignment should not fly as loaded.']]
+};
+
+const OSHIP=[
+ // Each trail step carries the conditions at that moment, so the status shown
+ // is computed by the same engine as the analyst tabs rather than typed in.
+ {id:'DG-4471',ttd:25, route:'NZAA → VHHH',cls:'9',un:'UN3480',what:'Lithium ion batteries',pg:'II',qty:2200,acc:'06:12',
+  trail:[['06:12','Accepted — declaration and packing verified',{temp:24,delay:0,night:false}],
+         ['07:40','ATC flow restriction, departure pushed back',{temp:28,delay:88,night:false}],
+         ['09:25','Ramp temperature reached 39 °C',{temp:39,delay:193,night:false}],
+         ['10:55','Still on stand, 4h 25m total',{temp:41,delay:265,night:true}]]},
+ {id:'DG-4468',ttd:150, route:'NZCH → YSSY',cls:'3',un:'UN1263',what:'Paint, flammable',pg:'II',qty:840,acc:'05:48',
+  trail:[['05:48','Accepted — declaration and packing verified',{temp:19,delay:0,night:false}],
+         ['07:05','Slot missed, aircraft waiting',{temp:26,delay:77,night:false}],
+         ['08:58','Ramp temperature reached 36 °C',{temp:36,delay:190,night:false}]]},
+ {id:'DG-4483',ttd:40, route:'NZWN → NZAA',cls:'2.1',un:'UN1950',what:'Aerosols, flammable',pg:'NA',qty:310,acc:'07:30',
+  trail:[['07:30','Accepted — declaration and packing verified',{temp:22,delay:0,night:false}],
+         ['08:40','Night shift handover during loading window',{temp:28,delay:70,night:true}],
+         ['09:05','Departure delayed 95 minutes',{temp:33,delay:95,night:true}]]},
+ {id:'DG-4490',ttd:95, route:'NZAA → WSSS',cls:'8',un:'UN1789',what:'Hydrochloric acid',pg:'II',qty:1450,acc:'08:05',
+  trail:[['08:05','Accepted — declaration and packing verified',{temp:21,delay:0,night:false}],
+         ['09:15','Departure delayed 70 minutes',{temp:27,delay:70,night:false}],
+         ['10:30','Held on stand, ramp temperature climbing',{temp:33,delay:140,night:false}]]},
+ {id:'DG-4495',ttd:310, route:'NZAA → YMML',cls:'9',un:'UN3481',what:'Lithium batteries in equipment',pg:'II',qty:180,acc:'08:40',
+  trail:[['08:40','Accepted — declaration and packing verified',{temp:22,delay:0,night:false}],
+         ['09:15','Minor delay, 35 minutes',{temp:24,delay:35,night:false}]]},
+ {id:'DG-4502',ttd:55, route:'NZCH → NZAA',cls:'6.1',un:'UN2811',what:'Toxic solid, organic',pg:'III',qty:60,acc:'09:02',
+  trail:[['09:02','Accepted — declaration and packing verified',{temp:19,delay:10,night:false}]]},
+ {id:'DG-4506',ttd:200, route:'NZAA → RJAA',cls:'5.1',un:'UN1479',what:'Oxidizing solid',pg:'II',qty:520,acc:'09:20',
+  trail:[['09:20','Accepted — declaration and packing verified',{temp:22,delay:0,night:false}]]},
+ {id:'DG-4511',ttd:420, route:'NZWN → NZCH',cls:'2.2',un:'UN1066',what:'Nitrogen, compressed',pg:'NA',qty:95,acc:'09:35',
+  trail:[['09:35','Accepted — declaration and packing verified',{temp:17,delay:0,night:false}]]}
+];
+
+const OMAP={Low:'Routine', Moderate:'Monitor', Elevated:'Act', High:'Hold'};
+function oscoreAt(s, cond){
+  return toScore(compute({cls:s.cls, pg:s.pg, qty:s.qty,
+    raw:{delay:cond.delay, temp:cond.temp, fat:cond.night?0.7:0.35},
+    unk:{delay:false,temp:false,fat:false}, extra:{}}).idx);
+}
+function obandAt(s, cond){ return OMAP[bandOf(compute({cls:s.cls, pg:s.pg, qty:s.qty,
+    raw:{delay:cond.delay, temp:cond.temp, fat:cond.night?0.7:0.35},
+    unk:{delay:false,temp:false,fat:false}, extra:{}}).idx)[0]]; }
+function obandOf(s){ return obandAt(s, s.trail[s.trail.length-1][2]); }
+
+/* Indicative 0-100 score for this consignment, scored by the same engine the
+   analyst tabs use. Two consignments often share a band; the number is what
+   lets a handler choose between them. */
+function oscore(s){ return oscoreAt(s, s.trail[s.trail.length-1][2]); }
+function ottd(m){ const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+(r?r+'m':'').trim()||'0m'; }
+
+function odrivers(s){
+  const c=s.trail[s.trail.length-1][2];
+  s={...s, temp:c.temp, delay:c.delay, night:c.night};
+  const out=[];
+  if(s.temp>=38) out.push(['🌡','Ramp temperature '+s.temp+'°C',
+    'Well above the point where cells of this type become unstable. Heat is the strongest single factor on this consignment.']);
+  else if(s.temp>=32) out.push(['🌡','Ramp temperature '+s.temp+'°C',
+    'Warm enough to matter for this class, particularly over a long hold.']);
+  const h=Math.floor(s.delay/60), m=s.delay%60;
+  const dstr=(h?h+'h ':'')+(m?m+'m':'').trim()||'0m';
+  if(s.delay>=180) out.push(['⏱','On the ground '+dstr,
+    'Extended exposure. The longer a consignment sits, the more heat and handling it accumulates.']);
+  else if(s.delay>=60) out.push(['⏱','On the ground '+dstr,
+    'Longer than a normal turnaround for this route.']);
+  if(s.night) out.push(['🌙','Loading across a shift handover',
+    'Handover periods carry a higher chance of something being missed during loading and securing.']);
+  if(['9','3','2.1','5.1'].includes(s.cls)) out.push(['📦',s.what+' — Class '+s.cls,
+    'This class appears in incident records more often than its share of traffic, so it starts from a higher baseline.']);
+  if(!out.length) out.push(['✓','Nothing of concern',
+    'Conditions are normal for this class and route.']);
+  return out;
+}
+
+let osel=OSHIP[0].id, ofilter='all';
+
+function ocounts(){
+  const c={Routine:0,Monitor:0,Act:0,Hold:0};
+  OSHIP.forEach(s=>c[obandOf(s)]++);
+  $('counts').innerHTML=[['all','All',OSHIP.length,'#3B4757'],
+    ['Hold','Hold',c.Hold,OBANDS.Hold.c],['Act','Action',c.Act,OBANDS.Act.c],
+    ['Monitor','Monitor',c.Monitor,OBANDS.Monitor.c],['Routine','Routine',c.Routine,OBANDS.Routine.c]]
+    .map(x=>`<button class="cbtn" aria-pressed="${ofilter===x[0]}" onclick="osetFilter('${x[0]}')">
+      <i class="dotc" style="background:${x[3]}"></i>${x[1]} <b>${x[2]}</b></button>`).join('');
+}
+function osetFilter(f){ ofilter=f; orender(); }
+
+function orender(){
+  ocounts();
+  const order={Hold:0,Act:1,Monitor:2,Routine:3};
+  const list=OSHIP.filter(s=>ofilter==='all'||obandOf(s)===ofilter)
+    .sort((a,b)=>(order[obandOf(a)]-order[obandOf(b)]) || (a.ttd-b.ttd));
+  $('qhead').textContent=list.length+' consignment'+(list.length===1?'':'s')+
+    (ofilter==='all'?', by status then departure':' · '+OBANDS[ofilter].lbl);
+  $('rows').innerHTML=list.map(s=>{
+    const b=OBANDS[obandOf(s)], soon=s.ttd<=45;
+    return `<div class="row" aria-selected="${s.id===osel}" onclick="opick('${s.id}')">
+      <div class="edge" style="background:${b.c}"></div>
+      <div class="who"><div class="id">${s.id} <span class="qsc" style="color:${b.c}">${oscore(s)}</span></div>
+        <div class="meta">${s.route} · ${s.what}</div></div>
+      <div class="st"><span class="chip" style="color:${b.c};border-color:${b.c}">${b.lbl}</span>
+        <span class="tm${soon?' soon':''}">${soon?'Departs in ':'Departs '}${ottd(s.ttd)}</span></div></div>`;}).join('');
+  if(!list.some(s=>s.id===osel)) osel=list.length?list[0].id:null;
+  odetail_();
+}
+
+function opick(id){ osel=id; orender(); }
+
+function odetail_(){
+  const s=OSHIP.find(x=>x.id===osel);
+  if(!s){ $('odetail').innerHTML='<div class="oempty">Nothing in this view</div>'; return; }
+  const now=s.trail[s.trail.length-1][2];
+  const band=obandOf(s), b=OBANDS[band];
+  const first=obandAt(s,s.trail[0][2]), moved=first!==band;
+  const h=Math.floor(now.delay/60), m=now.delay%60;
+  const dstr=((h?h+'h ':'')+(m?m+'m':'')).trim()||'none';
+
+  $('odetail').innerHTML=`
+  <div class="dhead">
+    <div><h2>${s.id}</h2>
+      <p class="sub">${s.route} · ${s.what} · ${s.un}</p></div>
+    <div class="status">
+      <div class="lbl" style="color:${b.c}">${b.lbl} <span class="dsc">${oscore(s)}</span></div>
+      <div class="arrow">${moved?'was '+OBANDS[first].lbl.toLowerCase()+' at acceptance':'unchanged since acceptance'} · departs in ${ottd(s.ttd)}</div>
+    </div>
+  </div>
+
+  <div class="sec"><h3>CONSIGNMENT</h3>
+    <div class="facts">
+      <div class="fact"><div class="k">Class</div><div class="v">${s.cls}</div></div>
+      <div class="fact"><div class="k">Packing group</div><div class="v">${s.pg}</div></div>
+      <div class="fact"><div class="k">Net quantity</div><div class="v">${s.qty} kg</div></div>
+      <div class="fact${now.temp>=32?' hot':''}"><div class="k">Ramp temperature</div><div class="v">${now.temp} °C</div></div>
+      <div class="fact${now.delay>=60?' hot':''}"><div class="k">Time on ground</div><div class="v">${dstr}</div></div>
+    </div>
+  </div>
+
+  <div class="sec"><h3>WHY THIS CONSIGNMENT NEEDS ATTENTION</h3>
+    <div class="why">${odrivers(s).map(d=>`
+      <div class="wcard" style="border-left-color:${b.c}">
+        <div class="ic">${d[0]}</div>
+        <div><b>${d[1]}</b><p>${d[2]}</p></div></div>`).join('')}</div>
+  </div>
+
+  <div class="sec"><h3>WHAT TO DO</h3>
+    <div class="policy">These steps are a proposed operating policy, not an output of the model. The model
+      produces a status; where the thresholds sit and what happens at each one is OneReg's decision.</div>
+    <div class="todo">${OTASKS[band].map((t,i)=>`
+      <label class="task" id="tk${i}">
+        <input type="checkbox" onchange="this.closest('.task').classList.toggle('done',this.checked)">
+        <span><span class="t">${t[0]}</span><span class="d">${t[1]}</span></span></label>`).join('')}</div>
+  </div>
+
+  <div class="sec"><h3>WHAT HAPPENED SO FAR</h3>
+    <div class="trail">${s.trail.map((e,i)=>{
+      const bandNow=obandAt(s,e[2]), bandPrev=i?obandAt(s,s.trail[i-1][2]):null;
+      const chg=i>0&&bandNow!==bandPrev;
+      return `<div class="tev${chg?' chg':''}">
+        <div class="when">${e[0]} · ${Math.round(e[2].temp)}°C · ${Math.round(e[2].delay)} min on ground</div>
+        <div class="w">${e[1]}</div>
+        ${chg?`<div class="band" style="color:${OBANDS[bandNow].c}">now ${OBANDS[bandNow].lbl.toLowerCase()} — ${oscoreAt(s,e[2])}</div>`:''}
+      </div>`;}).join('')}</div>
+  </div>
+
+  <div class="foot">
+    The declaration and packing for this consignment passed every check at acceptance and remain valid.
+    The status above reflects the conditions it has been exposed to since, which a compliance check does not track.
+    Handling steps are guidance, not a regulatory requirement — the duty DG officer decides what travels.
+  </div>`;
+}
+
+
+
+function initOperator(){
+  const d=new Date();
+  $('stamp').textContent=d.toLocaleDateString('en-NZ',{day:'numeric',month:'short'})+' · updated '+
+    d.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+  orender();
+}
+
+(function init(){
+  const order=Object.keys(CFG.inc).sort((a,b)=>parseFloat(a)-parseFloat(b));
+  $('cls').innerHTML=order.map(c=>`<option value="${c}">Class ${c} — ${CFG.grp[c]}</option>`).join('');
+  $('cls').value='9';
+  fillPicker(); syncLRs(); renderVars(); chain('weather');
+  $('fulltab').innerHTML=CASES.map(c=>
+   `<tr><td>${c.id}</td><td>${c.cls}</td><td>${c.hg}</td><td class="n">${c.temp??'—'}</td><td class="n">${c.delay??'—'}</td><td class="n">${c.fat??'—'}</td><td class="n">${c.out}</td><td class="n">${c.conf}</td></tr>`).join('');
+  draw();
+})();
+</script>
+</body>
+</html>
